@@ -5,6 +5,10 @@ plugins {
     id "net.ltgt.errorprone"
 }
 
+repositories {
+    maven { url 'https://jitpack.io' }
+}
+
 sourceCompatibility = JavaVersion.VERSION_11
 targetCompatibility = JavaVersion.VERSION_11
 
@@ -23,7 +27,7 @@ wpi {
 deploy {
     targets {
         roboRIO("roborio") {
-            team frc.getTeamOrDefault(2910)
+            team frc.getTeamOrDefault(2412)
         }
     }
     artifacts {
@@ -46,6 +50,8 @@ dependencies {
     implementation wpi.deps.vendor.java()
     nativeZip wpi.deps.vendor.jni(wpi.platforms.roborio)
     nativeDesktopZip wpi.deps.vendor.jni(wpi.platforms.desktop)
+
+    implementation "com.github.Oblarg.Oblog:lib:3.1.0"
 
     simulation wpi.deps.sim.gui(wpi.platforms.desktop, false)
 

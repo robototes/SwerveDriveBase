@@ -6,13 +6,15 @@ import org.frcteam2910.common.robot.UpdateManager;
 
 public class Robot extends TimedRobot {
     private RobotContainer robotContainer;
+    private Controls controls;
     private UpdateManager updateManager;
 
     @Override
     public void robotInit() {
         robotContainer = new RobotContainer();
+        controls = new Controls(robotContainer);
         updateManager = new UpdateManager(
-                robotContainer.getDrivetrainSubsystem()
+                robotContainer.drivetrainSubsystem
         );
         updateManager.startLoop(5.0e-3);
     }

@@ -3,8 +3,10 @@ package org.frcteam2910.mk3.subsystems;
 import com.ctre.phoenix.motorcontrol.can.TalonFX;
 import com.ctre.phoenix.sensors.CANCoder;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
+import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
@@ -24,11 +26,11 @@ import org.frcteam2910.common.robot.drivers.Pigeon;
 import org.frcteam2910.common.util.HolonomicDriveSignal;
 
 
-public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable {
-    public static final double TRACKWIDTH = 1.0;
-    public static final double WHEELBASE = 1.0;
-    public static final double STEER_GEAR_RATIO = 12.8;
-    public static final double DRIVE_GEAR_RATIO = 6.86;
+public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  {
+    public static final double TRACKWIDTH = 17.5;
+    public static final double WHEELBASE = 17.5;
+    public static final double STEER_GEAR_RATIO = (32.0 / 15.0) * (60.0 / 10.0);
+    public static final double DRIVE_GEAR_RATIO = (50.0 / 14.0) * (19.0 / 25.0) * (45.0 / 15.0);
 
     private final Mk3SwerveModule[] modules;
 
@@ -38,10 +40,49 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable {
             new Vector2(-TRACKWIDTH / 2.0, WHEELBASE / 2.0),        // Back left
             new Vector2(-TRACKWIDTH / 2.0, -WHEELBASE / 2.0)        // Back right
     );
+    private boolean fieldOriented;
+    private DriveSpeed driveSpeed;
+    public enum DriveSpeed{
+        BABY(0.4), TODDLER(0.6), TEENAGER(0.8), ADULT(1);
+        double speed;
+        DriveSpeed(double i) {
+            speed = i;
+        }
+        public double getSpeed(){
+            return speed;
+        }
+    }
+    public void babyMode(){
+        driveSpeed = DriveSpeed.BABY;
+    }
+    public void toddlerMode(){
+        driveSpeed = DriveSpeed.TODDLER;
+    }
+    public void teenagerMode(){
+        driveSpeed = DriveSpeed.TEENAGER;
+    }
+    public void adultMode(){
+        driveSpeed = DriveSpeed.ADULT;
+    }
+    public void enableFieldCentric(){
+        fieldOriented = true;
+    }
+    public void disableFieldCentric(){
+        fieldOriented = false;
+    }
+    public boolean isFieldOriented(){
+        return fieldOriented;
+    }
+
+    public double getGyroAngle(){
+        synchronized (sensorLock) {
+            return gyroscope.getAngle();
+        }
+    }
 
     private final Object sensorLock = new Object();
     @GuardedBy("sensorLock")
-    private Gyroscope gyroscope = new Pigeon(Constants.PIGEON_PORT);
+    private final AHRS gyroscope; // NavX connected over MXP
 
     private final Object kinematicsLock = new Object();
     @GuardedBy("kinematicsLock")
@@ -61,19 +102,32 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable {
     private final NetworkTableEntry[] moduleAngleEntries;
 
     public DrivetrainSubsystem() {
+        gyroscope = new AHRS(SPI.Port.kMXP);
         synchronized (sensorLock) {
-            gyroscope.setInverted(false);
+            gyroscope.enableBoardlevelYawReset(true);
         }
+        disableFieldCentric();
+        toddlerMode();
 
         TalonFX frontLeftSteeringMotor = new TalonFX(Constants.DRIVETRAIN_FRONT_LEFT_ANGLE_MOTOR);
         TalonFX backLeftSteeringMotor = new TalonFX(Constants.DRIVETRAIN_BACK_LEFT_ANGLE_MOTOR);
+        TalonFX frontRightSteeringMotor = new TalonFX(Constants.DRIVETRAIN_FRONT_RIGHT_ANGLE_MOTOR);
+        TalonFX backRightSteeringMotor = new TalonFX(Constants.DRIVETRAIN_BACK_RIGHT_ANGLE_MOTOR);
 
         TalonFX frontLeftDriveMotor = new TalonFX(Constants.DRIVETRAIN_FRONT_LEFT_DRIVE_MOTOR);
         TalonFX frontRightDriveMotor = new TalonFX(Constants.DRIVETRAIN_FRONT_RIGHT_DRIVE_MOTOR);
         TalonFX backLeftDriveMotor = new TalonFX(Constants.DRIVETRAIN_BACK_LEFT_DRIVE_MOTOR);
         TalonFX backRightDriveMotor = new TalonFX(Constants.DRIVETRAIN_BACK_RIGHT_DRIVE_MOTOR);
-        frontRightDriveMotor.setInverted(true);
-        backRightDriveMotor.setInverted(true);
+
+        frontLeftSteeringMotor.setSelectedSensorPosition(0);
+        frontRightSteeringMotor.setSelectedSensorPosition(0);
+        backLeftSteeringMotor.setSelectedSensorPosition(0);
+        backRightSteeringMotor.setSelectedSensorPosition(0);
+
+
+//        frontLeftDriveMotor.setInverted(true);
+//        backRightDriveMotor.setInverted(true);
+
 
         // Limit speed (testing only)
         configTalon(frontLeftDriveMotor);
@@ -87,15 +141,15 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable {
                 DRIVE_GEAR_RATIO,
                 frontLeftSteeringMotor,
                 frontLeftDriveMotor,
-                new CANCoder(Constants.DRIVETRAIN_FRONT_LEFT_ENCODER_PORT));
+                null);//new CANCoder(Constants.DRIVETRAIN_FRONT_LEFT_ENCODER_PORT));
 
         Mk3SwerveModule frontRightModule = new Mk3SwerveModule(new Vector2(TRACKWIDTH / 2.0, -WHEELBASE / 2.0),
                 Constants.DRIVETRAIN_FRONT_RIGHT_ENCODER_OFFSET,
                 STEER_GEAR_RATIO,
                 DRIVE_GEAR_RATIO,
-                new TalonFX(Constants.DRIVETRAIN_FRONT_RIGHT_ANGLE_MOTOR),
+                frontRightSteeringMotor,
                 frontRightDriveMotor,
-                new CANCoder(Constants.DRIVETRAIN_FRONT_RIGHT_ENCODER_PORT));
+                null);//new CANCoder(Constants.DRIVETRAIN_FRONT_RIGHT_ENCODER_PORT));
 
         Mk3SwerveModule backLeftModule = new Mk3SwerveModule(new Vector2(-TRACKWIDTH / 2.0, WHEELBASE / 2.0),
                 Constants.DRIVETRAIN_BACK_LEFT_ENCODER_OFFSET,
@@ -103,15 +157,15 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable {
                 DRIVE_GEAR_RATIO,
                 backLeftSteeringMotor,
                 backLeftDriveMotor,
-                new CANCoder(Constants.DRIVETRAIN_BACK_LEFT_ENCODER_PORT));
+                null);//new CANCoder(Constants.DRIVETRAIN_BACK_LEFT_ENCODER_PORT));
 
         Mk3SwerveModule backRightModule = new Mk3SwerveModule(new Vector2(-TRACKWIDTH / 2.0, -WHEELBASE / 2.0),
                 Constants.DRIVETRAIN_BACK_RIGHT_ENCODER_OFFSET,
                 STEER_GEAR_RATIO,
                 DRIVE_GEAR_RATIO,
-                new TalonFX(Constants.DRIVETRAIN_BACK_RIGHT_ANGLE_MOTOR),
+                backRightSteeringMotor,
                 backRightDriveMotor,
-                new CANCoder(Constants.DRIVETRAIN_BACK_RIGHT_ENCODER_PORT));
+                null);//new CANCoder(Constants.DRIVETRAIN_BACK_RIGHT_ENCODER_PORT));
 
         modules = new Mk3SwerveModule[] {frontLeftModule, frontRightModule, backLeftModule, backRightModule};
 
@@ -163,9 +217,10 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable {
         }
     }
 
-    public void drive(Vector2 translationalVelocity, double rotationalVelocity, boolean isFieldOriented) {
+    public void drive(Vector2 translationalVelocity, double rotationalVelocity) {
+        if(Math.abs(rotationalVelocity) < 0.1) rotationalVelocity = 0;
         synchronized (stateLock) {
-            driveSignal = new HolonomicDriveSignal(translationalVelocity, rotationalVelocity, isFieldOriented);
+            driveSignal = new HolonomicDriveSignal(translationalVelocity.scale(driveSpeed.getSpeed()), Math.pow(rotationalVelocity*driveSpeed.getSpeed(), 3), fieldOriented);
         }
     }
 
@@ -176,11 +231,9 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable {
         }
     }
 
-    public void resetGyroAngle(Rotation2 angle) {
+    public void zeroGyroAngle() {
         synchronized (sensorLock) {
-            gyroscope.setAdjustmentAngle(
-                    gyroscope.getUnadjustedAngle().rotateBy(angle.inverse())
-            );
+            gyroscope.reset();
         }
     }
 
@@ -191,8 +244,8 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable {
     }
 
     private void configTalon(TalonFX talon) {
-        talon.configPeakOutputForward(0.3, 30);
-        talon.configPeakOutputReverse(-0.3, 30);
+        talon.configPeakOutputForward(1, 30);
+        talon.configPeakOutputReverse(-1, 30);
     }
 
     private void updateOdometry(double dt) {
@@ -206,7 +259,8 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable {
 
         Rotation2 angle;
         synchronized (sensorLock) {
-            angle = gyroscope.getAngle();
+                angle = Rotation2.fromDegrees(gyroscope.isMagnetometerCalibrated() ?
+                        gyroscope.getFusedHeading() : 360.0 - gyroscope.getYaw());
         }
 
         synchronized (kinematicsLock) {

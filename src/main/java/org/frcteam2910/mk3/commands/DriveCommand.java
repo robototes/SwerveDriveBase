@@ -6,10 +6,10 @@ import org.frcteam2910.common.math.Vector2;
 import org.frcteam2910.common.robot.input.Axis;
 
 public class DriveCommand extends CommandBase {
-    private DrivetrainSubsystem drivetrainSubsystem;
-    private Axis forward;
-    private Axis strafe;
-    private Axis rotation;
+    private final DrivetrainSubsystem drivetrainSubsystem;
+    private final Axis forward;
+    private final Axis strafe;
+    private final Axis rotation;
 
     public DriveCommand(DrivetrainSubsystem drivetrain, Axis forward, Axis strafe, Axis rotation) {
         this.forward = forward;
@@ -23,11 +23,12 @@ public class DriveCommand extends CommandBase {
 
     @Override
     public void execute() {
-        drivetrainSubsystem.drive(new Vector2(forward.get(true), strafe.get(true)), rotation.get(true), true);
+        drivetrainSubsystem.drive(new Vector2(-forward.get(false), strafe.get(false)), -rotation.get(false));
+        if(drivetrainSubsystem.isFieldOriented()) System.out.println(drivetrainSubsystem.getGyroAngle());
     }
 
     @Override
     public void end(boolean interrupted) {
-        drivetrainSubsystem.drive(Vector2.ZERO, 0, false);
+        drivetrainSubsystem.drive(Vector2.ZERO, 0);
     }
 }
