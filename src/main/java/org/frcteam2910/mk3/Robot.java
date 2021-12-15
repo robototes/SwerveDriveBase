@@ -2,6 +2,7 @@ package org.frcteam2910.mk3;
 
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import org.frcteam2910.common.control.Trajectory;
 import org.frcteam2910.common.robot.UpdateManager;
 
 public class Robot extends TimedRobot {
@@ -26,6 +27,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void autonomousInit() {
+//        robotContainer.drivetrainSubsystem.follower.follow(new Trajectory());
     }
 
     @Override

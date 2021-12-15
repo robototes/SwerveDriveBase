@@ -12,6 +12,10 @@ import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.Subsystem;
+import org.frcteam2910.common.control.HolonomicMotionProfiledTrajectoryFollower;
+import org.frcteam2910.common.control.PidConstants;
+import org.frcteam2910.common.util.DrivetrainFeedforwardConstants;
+import org.frcteam2910.common.util.HolonomicFeedforward;
 import org.frcteam2910.mk3.Constants;
 import org.frcteam2910.common.drivers.Gyroscope;
 import org.frcteam2910.common.kinematics.ChassisVelocity;
@@ -94,6 +98,16 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
     @GuardedBy("stateLock")
     private HolonomicDriveSignal driveSignal = null;
 
+    private static final PidConstants FOLLOWER_TRANSLATION_CONSTANTS = new PidConstants(0.05, 0.01, 0.0);
+    private static final PidConstants FOLLOWER_ROTATION_CONSTANTS = new PidConstants(0.2, 0.01, 0.0);
+    private static final HolonomicFeedforward FOLLOWER_FEEDFORWARD_CONSTANTS = new HolonomicFeedforward(
+            new DrivetrainFeedforwardConstants(1.0 / (14.0 * 12.0), 0.0, 0.0));
+
+    public HolonomicMotionProfiledTrajectoryFollower follower;
+
+    @GuardedBy("kinematicsLock")
+    private ChassisVelocity velocity;
+
     // Logging
     private final NetworkTableEntry odometryXEntry;
     private final NetworkTableEntry odometryYEntry;
@@ -106,8 +120,10 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
         synchronized (sensorLock) {
             gyroscope.enableBoardlevelYawReset(true);
         }
-        disableFieldCentric();
+        enableFieldCentric();
         toddlerMode();
+
+        follower = new HolonomicMotionProfiledTrajectoryFollower(FOLLOWER_TRANSLATION_CONSTANTS, FOLLOWER_ROTATION_CONSTANTS, FOLLOWER_FEEDFORWARD_CONSTANTS);
 
         TalonFX frontLeftSteeringMotor = new TalonFX(Constants.DRIVETRAIN_FRONT_LEFT_ANGLE_MOTOR);
         TalonFX backLeftSteeringMotor = new TalonFX(Constants.DRIVETRAIN_BACK_LEFT_ANGLE_MOTOR);
@@ -265,6 +281,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
 
         synchronized (kinematicsLock) {
             this.pose = swerveOdometry.update(angle, dt, moduleVelocities);
+            this.velocity = swerveKinematics.toChassisVelocity(moduleVelocities);
         }
     }
 
@@ -295,14 +312,20 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
 
     @Override
     public void update(double time, double dt) {
+
         updateOdometry(dt);
 
         HolonomicDriveSignal driveSignal;
         synchronized (stateLock) {
+            if(follower.getCurrentTrajectory().isPresent()) follower.update(getPose(), velocity.getTranslationalVelocity(), velocity.getAngularVelocity(), time, dt).ifPresent(this::setDriveSignal);
             driveSignal = this.driveSignal;
         }
 
         updateModules(driveSignal, dt);
+    }
+
+    private void setDriveSignal(HolonomicDriveSignal d){
+        driveSignal = d;
     }
 
     @Override
