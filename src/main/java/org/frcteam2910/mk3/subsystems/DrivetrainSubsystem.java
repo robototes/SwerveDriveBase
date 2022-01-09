@@ -12,8 +12,7 @@ import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj2.command.Subsystem;
-import org.frcteam2910.common.control.HolonomicMotionProfiledTrajectoryFollower;
-import org.frcteam2910.common.control.PidConstants;
+import org.frcteam2910.common.control.*;
 import org.frcteam2910.common.util.DrivetrainFeedforwardConstants;
 import org.frcteam2910.common.util.HolonomicFeedforward;
 import org.frcteam2910.mk3.Constants;
@@ -45,7 +44,12 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
             new Vector2(-TRACKWIDTH / 2.0, -WHEELBASE / 2.0)        // Back right
     );
     private boolean fieldOriented;
-    private DriveSpeed driveSpeed;
+    private double driveSpeed;
+
+    public double getDriveSpeed() {
+        return driveSpeed;
+    }
+
     public enum DriveSpeed{
         BABY(0.4), TODDLER(0.6), TEENAGER(0.8), ADULT(1);
         double speed;
@@ -56,17 +60,21 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
             return speed;
         }
     }
+    public void modifyDriveSpeed(double amt){
+        driveSpeed+=amt;
+    }
+
     public void babyMode(){
-        driveSpeed = DriveSpeed.BABY;
+        driveSpeed = DriveSpeed.BABY.speed;
     }
     public void toddlerMode(){
-        driveSpeed = DriveSpeed.TODDLER;
+        driveSpeed = DriveSpeed.TODDLER.speed;
     }
     public void teenagerMode(){
-        driveSpeed = DriveSpeed.TEENAGER;
+        driveSpeed = DriveSpeed.TEENAGER.speed;
     }
     public void adultMode(){
-        driveSpeed = DriveSpeed.ADULT;
+        driveSpeed = DriveSpeed.ADULT.speed;
     }
     public void enableFieldCentric(){
         fieldOriented = true;
@@ -115,7 +123,16 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
 
     private final NetworkTableEntry[] moduleAngleEntries;
 
+    private static final double MAX_VELOCITY = 12.0 * 12.0;
+
+    public static final TrajectoryConstraint[] CONSTRAINTS = {
+            new MaxVelocityConstraint(MAX_VELOCITY),
+            new MaxAccelerationConstraint(13.0 * 12.0),
+            new CentripetalAccelerationConstraint(25.0 * 12.0)
+    };
+
     public DrivetrainSubsystem() {
+        register();
         gyroscope = new AHRS(SPI.Port.kMXP);
         synchronized (sensorLock) {
             gyroscope.enableBoardlevelYawReset(true);
@@ -236,7 +253,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
     public void drive(Vector2 translationalVelocity, double rotationalVelocity) {
         if(Math.abs(rotationalVelocity) < 0.1) rotationalVelocity = 0;
         synchronized (stateLock) {
-            driveSignal = new HolonomicDriveSignal(translationalVelocity.scale(driveSpeed.getSpeed()), Math.pow(rotationalVelocity*driveSpeed.getSpeed(), 3), fieldOriented);
+            driveSignal = new HolonomicDriveSignal(translationalVelocity.scale(driveSpeed), Math.pow(rotationalVelocity*driveSpeed, 3), fieldOriented);
         }
     }
 
@@ -317,15 +334,19 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
 
         HolonomicDriveSignal driveSignal;
         synchronized (stateLock) {
-            if(follower.getCurrentTrajectory().isPresent()) follower.update(getPose(), velocity.getTranslationalVelocity(), velocity.getAngularVelocity(), time, dt).ifPresent(this::setDriveSignal);
+            synchronized (kinematicsLock) {
+                follower.update(getPose(), velocity.getTranslationalVelocity(), velocity.getAngularVelocity(), time, dt).ifPresent(this::setDriveSignal);
+            }
             driveSignal = this.driveSignal;
+            updateModules(driveSignal, dt);
         }
 
-        updateModules(driveSignal, dt);
     }
 
     private void setDriveSignal(HolonomicDriveSignal d){
-        driveSignal = d;
+        synchronized (stateLock) {
+            driveSignal = d;
+        }
     }
 
     @Override
@@ -338,5 +359,8 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
         for (int i = 0; i < modules.length; i++) {
             moduleAngleEntries[i].setDouble(Math.toDegrees(modules[i].getCurrentAngle()));
         }
+    }
+    public void follow(Path p){
+        follower.follow(new Trajectory(p, CONSTRAINTS, 10000));
     }
 }

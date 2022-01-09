@@ -13,12 +13,16 @@ public class Controls {
         CommandScheduler.getInstance().setDefaultCommand(r.drivetrainSubsystem, new DriveCommand(r.drivetrainSubsystem, getDriveForwardAxis(), getDriveStrafeAxis(), getDriveRotationAxis()));
 
         primaryController.getBackButton().whenPressed(r.drivetrainSubsystem::zeroGyroAngle);
+
+        primaryController.getLeftBumperButton().whenPressed(()->r.drivetrainSubsystem.modifyDriveSpeed(-0.05));
+        primaryController.getRightBumperButton().whenPressed(()->r.drivetrainSubsystem.modifyDriveSpeed(0.05));
         //primaryController.getStartButton().whenPressed(r.drivetrainSubsystem::resetWheelAngles);
 
-        primaryController.getDPadButton(DPadButton.Direction.UP).whenPressed(r.drivetrainSubsystem::enableFieldCentric);
-        primaryController.getDPadButton(DPadButton.Direction.DOWN).whenPressed(r.drivetrainSubsystem::disableFieldCentric);
+//        primaryController.getDPadButton(DPadButton.Direction.UP).whenPressed(r.drivetrainSubsystem::enableFieldCentric);
+//        primaryController.getDPadButton(DPadButton.Direction.DOWN).whenPressed(r.drivetrainSubsystem::disableFieldCentric);
 
-        primaryController.getRightBumperButton().whenPressed(r.drivetrainSubsystem::adultMode).whenReleased(r.drivetrainSubsystem::toddlerMode);
+//        primaryController.getRightBumperButton().whenPressed(r.drivetrainSubsystem::adultMode).whenReleased(r.drivetrainSubsystem::toddlerMode);
+
     }
 
 
