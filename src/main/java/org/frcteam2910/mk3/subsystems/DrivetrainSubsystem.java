@@ -174,7 +174,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
                 DRIVE_GEAR_RATIO,
                 frontLeftSteeringMotor,
                 frontLeftDriveMotor,
-                new CANCoder(Constants.DRIVETRAIN_FRONT_LEFT_ENCODER_PORT));
+                null); //new CANCoder(Constants.DRIVETRAIN_FRONT_LEFT_ENCODER_PORT));
 
         Mk3SwerveModule frontRightModule = new Mk3SwerveModule(new Vector2(TRACKWIDTH / 2.0, -WHEELBASE / 2.0),
                 Constants.DRIVETRAIN_FRONT_RIGHT_ENCODER_OFFSET,
@@ -182,7 +182,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
                 DRIVE_GEAR_RATIO,
                 frontRightSteeringMotor,
                 frontRightDriveMotor,
-                new CANCoder(Constants.DRIVETRAIN_FRONT_RIGHT_ENCODER_PORT));
+                null); //new CANCoder(Constants.DRIVETRAIN_FRONT_RIGHT_ENCODER_PORT));
 
         Mk3SwerveModule backLeftModule = new Mk3SwerveModule(new Vector2(-TRACKWIDTH / 2.0, WHEELBASE / 2.0),
                 Constants.DRIVETRAIN_BACK_LEFT_ENCODER_OFFSET,
@@ -190,7 +190,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
                 DRIVE_GEAR_RATIO,
                 backLeftSteeringMotor,
                 backLeftDriveMotor,
-                new CANCoder(Constants.DRIVETRAIN_BACK_LEFT_ENCODER_PORT));
+                null); //new CANCoder(Constants.DRIVETRAIN_BACK_LEFT_ENCODER_PORT));
 
         Mk3SwerveModule backRightModule = new Mk3SwerveModule(new Vector2(-TRACKWIDTH / 2.0, -WHEELBASE / 2.0),
                 Constants.DRIVETRAIN_BACK_RIGHT_ENCODER_OFFSET,
@@ -198,7 +198,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
                 DRIVE_GEAR_RATIO,
                 backRightSteeringMotor,
                 backRightDriveMotor,
-                new CANCoder(Constants.DRIVETRAIN_BACK_RIGHT_ENCODER_PORT));
+                null); //new CANCoder(Constants.DRIVETRAIN_BACK_RIGHT_ENCODER_PORT));
 
         modules = new Mk3SwerveModule[] {frontLeftModule, frontRightModule, backLeftModule, backRightModule};
 
