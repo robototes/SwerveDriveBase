@@ -32,9 +32,9 @@ public class Robot extends TimedRobot {
     public SimplePathBuilder builder;
     @Override
     public void autonomousInit() {
-//        SimplePathBuilder builder = new SimplePathBuilder(new Vector2(0, 0), Rotation2.fromDegrees(0));
-//        robotContainer.drivetrainSubsystem.follow(builder.lineTo(new Vector2(10000, 0)).build());
-//        robotContainer.drivetrainSubsystem.resetPose(RigidTransform2.ZERO);
+        robotContainer.drivetrainSubsystem.resetPose(RigidTransform2.ZERO);
+        SimplePathBuilder builder = new SimplePathBuilder(new Vector2(0, 0), Rotation2.fromDegrees(0));
+        robotContainer.drivetrainSubsystem.follow(builder.lineTo(new Vector2(20, 0)).build());
     }
 
     @Override
