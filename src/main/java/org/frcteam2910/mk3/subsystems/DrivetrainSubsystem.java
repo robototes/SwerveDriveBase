@@ -1,10 +1,12 @@
 package org.frcteam2910.mk3.subsystems;
 
 import com.ctre.phoenix.motorcontrol.can.TalonFX;
+import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.sensors.CANCoder;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.kauailabs.navx.frc.AHRS;
 import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SPI;
 import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
@@ -30,8 +32,8 @@ import org.frcteam2910.common.util.HolonomicDriveSignal;
 
 
 public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  {
-    public static final double TRACKWIDTH = 17.5;
-    public static final double WHEELBASE = 17.5;
+    public static final double TRACKWIDTH = 17.5; // Inches
+    public static final double WHEELBASE = 17.5; // Inches
     public static final double STEER_GEAR_RATIO = (32.0 / 15.0) * (60.0 / 10.0);
     public static final double DRIVE_GEAR_RATIO = (50.0 / 14.0) * (19.0 / 25.0) * (45.0 / 15.0);
 
@@ -123,6 +125,11 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
 
     private final NetworkTableEntry[] moduleAngleEntries;
 
+    private final WPI_TalonFX frontLeftDriveMotor;
+    private final WPI_TalonFX frontRightDriveMotor;
+    private final WPI_TalonFX backLeftDriveMotor;
+    private final WPI_TalonFX backRightDriveMotor;
+
     private static final double MAX_VELOCITY = 12.0 * 12.0;
 
     public static final TrajectoryConstraint[] CONSTRAINTS = {
@@ -142,16 +149,20 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
 
         follower = new HolonomicMotionProfiledTrajectoryFollower(FOLLOWER_TRANSLATION_CONSTANTS, FOLLOWER_ROTATION_CONSTANTS, FOLLOWER_FEEDFORWARD_CONSTANTS);
 
-        TalonFX frontLeftSteeringMotor = new TalonFX(Constants.DRIVETRAIN_FRONT_LEFT_ANGLE_MOTOR);
-        TalonFX backLeftSteeringMotor = new TalonFX(Constants.DRIVETRAIN_BACK_LEFT_ANGLE_MOTOR);
-        TalonFX frontRightSteeringMotor = new TalonFX(Constants.DRIVETRAIN_FRONT_RIGHT_ANGLE_MOTOR);
-        TalonFX backRightSteeringMotor = new TalonFX(Constants.DRIVETRAIN_BACK_RIGHT_ANGLE_MOTOR);
+        TalonFX frontLeftSteeringMotor = new WPI_TalonFX(Constants.DRIVETRAIN_FRONT_LEFT_ANGLE_MOTOR);
+        TalonFX backLeftSteeringMotor = new WPI_TalonFX(Constants.DRIVETRAIN_BACK_LEFT_ANGLE_MOTOR);
+        TalonFX frontRightSteeringMotor = new WPI_TalonFX(Constants.DRIVETRAIN_FRONT_RIGHT_ANGLE_MOTOR);
+        TalonFX backRightSteeringMotor = new WPI_TalonFX(Constants.DRIVETRAIN_BACK_RIGHT_ANGLE_MOTOR);
 
-        TalonFX frontLeftDriveMotor = new TalonFX(Constants.DRIVETRAIN_FRONT_LEFT_DRIVE_MOTOR);
-        TalonFX frontRightDriveMotor = new TalonFX(Constants.DRIVETRAIN_FRONT_RIGHT_DRIVE_MOTOR);
-        TalonFX backLeftDriveMotor = new TalonFX(Constants.DRIVETRAIN_BACK_LEFT_DRIVE_MOTOR);
-        TalonFX backRightDriveMotor = new TalonFX(Constants.DRIVETRAIN_BACK_RIGHT_DRIVE_MOTOR);
-
+        WPI_TalonFX frontLeftDriveMotor = new WPI_TalonFX(Constants.DRIVETRAIN_FRONT_LEFT_DRIVE_MOTOR);
+        WPI_TalonFX frontRightDriveMotor = new WPI_TalonFX(Constants.DRIVETRAIN_FRONT_RIGHT_DRIVE_MOTOR);
+        WPI_TalonFX backLeftDriveMotor = new WPI_TalonFX(Constants.DRIVETRAIN_BACK_LEFT_DRIVE_MOTOR);
+        WPI_TalonFX backRightDriveMotor = new WPI_TalonFX(Constants.DRIVETRAIN_BACK_RIGHT_DRIVE_MOTOR);
+        this.frontLeftDriveMotor = frontLeftDriveMotor;
+        this.frontRightDriveMotor = frontRightDriveMotor;
+        this.backLeftDriveMotor = backLeftDriveMotor;
+        this.backRightDriveMotor = backRightDriveMotor;
+    
         frontLeftSteeringMotor.setSelectedSensorPosition(0);
         frontRightSteeringMotor.setSelectedSensorPosition(0);
         backLeftSteeringMotor.setSelectedSensorPosition(0);
@@ -350,6 +361,22 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
     }
 
     @Override
+    public void simulationPeriodic() {
+        // Not-realistic model of drive motors where the position & velocity is linearly dependent on the output voltage
+        // This assumes the robot has zero mass, the motors are 100% efficient and move 120 ticks every period (20ms)
+        // when run at full power.
+        // Note that velocity is measured in units per 100ms, so the value is 5x the change in position
+        frontLeftDriveMotor.getSimCollection().addIntegratedSensorPosition((int)(frontLeftDriveMotor.getMotorOutputVoltage() * 10));
+        frontLeftDriveMotor.getSimCollection().setIntegratedSensorVelocity((int)(frontLeftDriveMotor.getMotorOutputVoltage() * 10 * 5));
+        frontRightDriveMotor.getSimCollection().addIntegratedSensorPosition((int)(frontRightDriveMotor.getMotorOutputVoltage() * 10));
+        frontRightDriveMotor.getSimCollection().setIntegratedSensorVelocity((int)(frontRightDriveMotor.getMotorOutputVoltage() * 10 * 5));
+        backLeftDriveMotor.getSimCollection().addIntegratedSensorPosition((int)(backLeftDriveMotor.getMotorOutputVoltage() * 10));
+        backLeftDriveMotor.getSimCollection().setIntegratedSensorVelocity((int)(backLeftDriveMotor.getMotorOutputVoltage() * 10 * 5));
+        backRightDriveMotor.getSimCollection().addIntegratedSensorPosition((int)(backRightDriveMotor.getMotorOutputVoltage() * 10));
+        backRightDriveMotor.getSimCollection().setIntegratedSensorVelocity((int)(backRightDriveMotor.getMotorOutputVoltage() * 10 * 5));
+    }
+
+    @Override
     public void periodic() {
         RigidTransform2 pose = getPose();
         odometryXEntry.setDouble(pose.translation.x);
@@ -361,6 +388,6 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
         }
     }
     public void follow(Path p){
-        follower.follow(new Trajectory(p, CONSTRAINTS, 10000));
+        follower.follow(new Trajectory(p, CONSTRAINTS, 12.0));
     }
 }
