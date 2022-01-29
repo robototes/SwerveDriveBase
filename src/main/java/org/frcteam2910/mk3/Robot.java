@@ -34,7 +34,7 @@ public class Robot extends TimedRobot {
     public void autonomousInit() {
         robotContainer.drivetrainSubsystem.resetPose(RigidTransform2.ZERO);
         SimplePathBuilder builder = new SimplePathBuilder(new Vector2(0, 0), Rotation2.fromDegrees(0));
-        robotContainer.drivetrainSubsystem.follow(builder.lineTo(new Vector2(20, 0)).build());
+        robotContainer.drivetrainSubsystem.follow(builder.lineTo(new Vector2(20, 0)).lineTo(new Vector2(20, 20)).lineTo(new Vector2(0, 20)).lineTo(new Vector2(0, 0)).build());
     }
 
     @Override

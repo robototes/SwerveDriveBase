@@ -108,8 +108,8 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
     @GuardedBy("stateLock")
     private HolonomicDriveSignal driveSignal = null;
 
-    private static final PidConstants FOLLOWER_TRANSLATION_CONSTANTS = new PidConstants(0.05, 0.01, 0.0);
-    private static final PidConstants FOLLOWER_ROTATION_CONSTANTS = new PidConstants(0.2, 0.01, 0.0);
+    private static final PidConstants FOLLOWER_TRANSLATION_CONSTANTS = new PidConstants(0.05, 0.01, 0);
+    private static final PidConstants FOLLOWER_ROTATION_CONSTANTS = new PidConstants(0.05, 0.01, 0);
     private static final HolonomicFeedforward FOLLOWER_FEEDFORWARD_CONSTANTS = new HolonomicFeedforward(
             new DrivetrainFeedforwardConstants(1.0 / (14.0 * 12.0), 0.0, 0.0));
 
@@ -130,12 +130,12 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
     private final WPI_TalonFX backLeftDriveMotor;
     private final WPI_TalonFX backRightDriveMotor;
 
-    private static final double MAX_VELOCITY = 12.0 * 12.0;
+    private static final double MAX_VELOCITY = 6;
 
     public static final TrajectoryConstraint[] CONSTRAINTS = {
             new MaxVelocityConstraint(MAX_VELOCITY),
-            new MaxAccelerationConstraint(13.0 * 12.0),
-            new CentripetalAccelerationConstraint(25.0 * 12.0)
+            new MaxAccelerationConstraint(6),
+            new CentripetalAccelerationConstraint(6)
     };
 
     public DrivetrainSubsystem() {
@@ -288,8 +288,8 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
     }
 
     private void configTalon(TalonFX talon) {
-        talon.configPeakOutputForward(1, 30);
-        talon.configPeakOutputReverse(-1, 30);
+        talon.configPeakOutputForward(0.3, 30);
+        talon.configPeakOutputReverse(-0.3, 30);
     }
 
     private void updateOdometry(double dt) {
