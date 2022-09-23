@@ -1,24 +1,20 @@
 package org.frcteam2910.mk3.subsystems;
 
+import java.util.Map;
+
 import com.ctre.phoenix.motorcontrol.can.TalonFX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
-import com.ctre.phoenix.sensors.CANCoder;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.kauailabs.navx.frc.AHRS;
-import edu.wpi.first.networktables.NetworkTableEntry;
-import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.SPI;
-import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
-import edu.wpi.first.wpilibj2.command.Subsystem;
-import org.frcteam2910.common.control.*;
-import org.frcteam2910.common.util.DrivetrainFeedforwardConstants;
-import org.frcteam2910.common.util.HolonomicFeedforward;
-import org.frcteam2910.mk3.Constants;
-import org.frcteam2910.common.drivers.Gyroscope;
+
+import org.frcteam2910.common.control.CentripetalAccelerationConstraint;
+import org.frcteam2910.common.control.HolonomicMotionProfiledTrajectoryFollower;
+import org.frcteam2910.common.control.MaxAccelerationConstraint;
+import org.frcteam2910.common.control.MaxVelocityConstraint;
+import org.frcteam2910.common.control.Path;
+import org.frcteam2910.common.control.PidConstants;
+import org.frcteam2910.common.control.Trajectory;
+import org.frcteam2910.common.control.TrajectoryConstraint;
 import org.frcteam2910.common.kinematics.ChassisVelocity;
 import org.frcteam2910.common.kinematics.SwerveKinematics;
 import org.frcteam2910.common.kinematics.SwerveOdometry;
@@ -27,8 +23,22 @@ import org.frcteam2910.common.math.Rotation2;
 import org.frcteam2910.common.math.Vector2;
 import org.frcteam2910.common.robot.UpdateManager;
 import org.frcteam2910.common.robot.drivers.Mk3SwerveModule;
-import org.frcteam2910.common.robot.drivers.Pigeon;
+import org.frcteam2910.common.util.DrivetrainFeedforwardConstants;
 import org.frcteam2910.common.util.HolonomicDriveSignal;
+import org.frcteam2910.common.util.HolonomicFeedforward;
+import org.frcteam2910.mk3.Constants;
+
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.networktables.NetworkTableEntry;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.SPI;
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInLayouts;
+import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
+import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
+import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj2.command.Subsystem;
 
 
 public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  {
@@ -36,6 +46,8 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
     public static final double WHEELBASE = 17.5; // Inches
     public static final double STEER_GEAR_RATIO = (32.0 / 15.0) * (60.0 / 10.0);
     public static final double DRIVE_GEAR_RATIO = (50.0 / 14.0) * (19.0 / 25.0) * (45.0 / 15.0);
+    public static final double MIN_DRIVE_SPEED = 0.1;
+    public static final double MAX_DRIVE_SPEED = 1;
 
     private final Mk3SwerveModule[] modules;
 
@@ -47,96 +59,6 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
     );
     private boolean fieldOriented;
     private double driveSpeed;
-
-    public double getDriveSpeed() {
-        return driveSpeed;
-    }
-
-    public enum DriveSpeed{
-        BABY(0.4), TODDLER(0.6), TEENAGER(0.8), ADULT(1);
-        double speed;
-        DriveSpeed(double i) {
-            speed = i;
-        }
-        public double getSpeed(){
-            return speed;
-        }
-    }
-    public void modifyDriveSpeed(double amt){
-        driveSpeed+=amt;
-    }
-
-    public void babyMode(){
-        driveSpeed = DriveSpeed.BABY.speed;
-    }
-    public void toddlerMode(){
-        driveSpeed = DriveSpeed.TODDLER.speed;
-    }
-    public void teenagerMode(){
-        driveSpeed = DriveSpeed.TEENAGER.speed;
-    }
-    public void adultMode(){
-        driveSpeed = DriveSpeed.ADULT.speed;
-    }
-    public void enableFieldCentric(){
-        fieldOriented = true;
-    }
-    public void disableFieldCentric(){
-        fieldOriented = false;
-    }
-    public boolean isFieldOriented(){
-        return fieldOriented;
-    }
-
-    public double getGyroAngle(){
-        synchronized (sensorLock) {
-            return gyroscope.getAngle();
-        }
-    }
-
-    private final Object sensorLock = new Object();
-    @GuardedBy("sensorLock")
-    private final AHRS gyroscope; // NavX connected over MXP
-
-    private final Object kinematicsLock = new Object();
-    @GuardedBy("kinematicsLock")
-    private final SwerveOdometry swerveOdometry = new SwerveOdometry(swerveKinematics, RigidTransform2.ZERO);
-    @GuardedBy("kinematicsLock")
-    private RigidTransform2 pose = RigidTransform2.ZERO;
-
-    private final Object stateLock = new Object();
-    @GuardedBy("stateLock")
-    private HolonomicDriveSignal driveSignal = null;
-
-    private static final PidConstants FOLLOWER_TRANSLATION_CONSTANTS = new PidConstants(0.05, 0.01, 0);
-    private static final PidConstants FOLLOWER_ROTATION_CONSTANTS = new PidConstants(0.05, 0.01, 0);
-    private static final HolonomicFeedforward FOLLOWER_FEEDFORWARD_CONSTANTS = new HolonomicFeedforward(
-            new DrivetrainFeedforwardConstants(1.0 / (14.0 * 12.0), 0.0, 0.0));
-
-    public HolonomicMotionProfiledTrajectoryFollower follower;
-
-    @GuardedBy("kinematicsLock")
-    private ChassisVelocity velocity;
-
-    // Logging
-    private final NetworkTableEntry odometryXEntry;
-    private final NetworkTableEntry odometryYEntry;
-    private final NetworkTableEntry odometryAngleEntry;
-
-    private final NetworkTableEntry[] moduleAngleEntries;
-
-    private final WPI_TalonFX frontLeftDriveMotor;
-    private final WPI_TalonFX frontRightDriveMotor;
-    private final WPI_TalonFX backLeftDriveMotor;
-    private final WPI_TalonFX backRightDriveMotor;
-
-    private static final double MAX_VELOCITY = 6;
-
-    public static final TrajectoryConstraint[] CONSTRAINTS = {
-            new MaxVelocityConstraint(MAX_VELOCITY),
-            new MaxAccelerationConstraint(6),
-            new CentripetalAccelerationConstraint(6)
-    };
 
     public DrivetrainSubsystem() {
         register();
@@ -241,6 +163,17 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
                     .withSize(2, 4);
             moduleAngleEntries[i] = layout.add("Angle", 0.0).getEntry();
         }
+        driveSpeedEntry = tab.add("Drive speed", driveSpeed)
+                .withWidget(BuiltInWidgets.kNumberSlider)
+                .withProperties(Map.ofEntries(Map.entry("min", MIN_DRIVE_SPEED), Map.entry("max", MAX_DRIVE_SPEED)))
+                .withPosition(1, 1)
+                .withSize(1, 1)
+                .getEntry();
+        driveSpeedToggle = tab.add("Drive speed toggle", false)
+                .withWidget(BuiltInWidgets.kToggleButton)
+                .withPosition(1, 2)
+                .withSize(1, 1)
+                .getEntry();
         tab.addNumber("Rotation Voltage", () -> {
             HolonomicDriveSignal signal;
             synchronized (stateLock) {
@@ -255,6 +188,113 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
         });
     }
 
+    /**
+     * Returns the controller drive speed.
+     * @return The controller drive speed.
+     */
+    public double getControllerDriveSpeed() {
+        return driveSpeed;
+    }
+
+    /**
+     * Returns either the Shuffleboard drive speed or the controller drive speed, based on the toggle.
+     * @return The drive speed to use.
+     */
+    public double getDriveSpeed() {
+        return driveSpeedToggle.getBoolean(false) ? driveSpeedEntry.getDouble(1) : driveSpeed;
+    }
+
+    public enum DriveSpeed{
+        BABY(0.4), TODDLER(0.6), TEENAGER(0.8), ADULT(1);
+        double speed;
+        DriveSpeed(double i) {
+            speed = i;
+        }
+        public double getSpeed(){
+            return speed;
+        }
+    }
+    public void modifyDriveSpeed(double amt){
+        driveSpeed+=amt;
+        driveSpeed = MathUtil.clamp(driveSpeed, MIN_DRIVE_SPEED, MAX_DRIVE_SPEED);
+    }
+
+    public void babyMode(){
+        driveSpeed = DriveSpeed.BABY.speed;
+    }
+    public void toddlerMode(){
+        driveSpeed = DriveSpeed.TODDLER.speed;
+    }
+    public void teenagerMode(){
+        driveSpeed = DriveSpeed.TEENAGER.speed;
+    }
+    public void adultMode(){
+        driveSpeed = DriveSpeed.ADULT.speed;
+    }
+    public void enableFieldCentric(){
+        fieldOriented = true;
+    }
+    public void disableFieldCentric(){
+        fieldOriented = false;
+    }
+    public boolean isFieldOriented(){
+        return fieldOriented;
+    }
+
+    public double getGyroAngle(){
+        synchronized (sensorLock) {
+            return gyroscope.getAngle();
+        }
+    }
+
+    private final Object sensorLock = new Object();
+    @GuardedBy("sensorLock")
+    private final AHRS gyroscope; // NavX connected over MXP
+
+    private final Object kinematicsLock = new Object();
+    @GuardedBy("kinematicsLock")
+    private final SwerveOdometry swerveOdometry = new SwerveOdometry(swerveKinematics, RigidTransform2.ZERO);
+    @GuardedBy("kinematicsLock")
+    private RigidTransform2 pose = RigidTransform2.ZERO;
+
+    private final Object stateLock = new Object();
+    @GuardedBy("stateLock")
+    private HolonomicDriveSignal driveSignal = null;
+
+    private static final PidConstants FOLLOWER_TRANSLATION_CONSTANTS = new PidConstants(0.05, 0.01, 0);
+    private static final PidConstants FOLLOWER_ROTATION_CONSTANTS = new PidConstants(0.05, 0.01, 0);
+    private static final HolonomicFeedforward FOLLOWER_FEEDFORWARD_CONSTANTS = new HolonomicFeedforward(
+            new DrivetrainFeedforwardConstants(1.0 / (14.0 * 12.0), 0.0, 0.0));
+
+    public HolonomicMotionProfiledTrajectoryFollower follower;
+
+    @GuardedBy("kinematicsLock")
+    private ChassisVelocity velocity;
+
+    // Logging
+    private final NetworkTableEntry odometryXEntry;
+    private final NetworkTableEntry odometryYEntry;
+    private final NetworkTableEntry odometryAngleEntry;
+
+    private final NetworkTableEntry[] moduleAngleEntries;
+
+    private final NetworkTableEntry driveSpeedEntry;
+    private final NetworkTableEntry driveSpeedToggle;
+    
+    private final WPI_TalonFX frontLeftDriveMotor;
+    private final WPI_TalonFX frontRightDriveMotor;
+    private final WPI_TalonFX backLeftDriveMotor;
+    private final WPI_TalonFX backRightDriveMotor;
+
+    private static final double MAX_VELOCITY = 6;
+
+    public static final TrajectoryConstraint[] CONSTRAINTS = {
+            new MaxVelocityConstraint(MAX_VELOCITY),
+            new MaxAccelerationConstraint(6),
+            new CentripetalAccelerationConstraint(6)
+    };
+
+   
     public RigidTransform2 getPose() {
         synchronized (kinematicsLock) {
             return pose;
@@ -264,7 +304,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
     public void drive(Vector2 translationalVelocity, double rotationalVelocity) {
         if(Math.abs(rotationalVelocity) < 0.1) rotationalVelocity = 0;
         synchronized (stateLock) {
-            driveSignal = new HolonomicDriveSignal(translationalVelocity.scale(driveSpeed), Math.pow(rotationalVelocity*driveSpeed, 3), fieldOriented);
+            driveSignal = new HolonomicDriveSignal(translationalVelocity.scale(getDriveSpeed()), Math.pow(rotationalVelocity*getDriveSpeed(), 3), fieldOriented);
         }
     }
 
