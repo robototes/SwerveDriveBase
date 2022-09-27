@@ -46,6 +46,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
     public static final double WHEELBASE = 17.5; // Inches
     public static final double STEER_GEAR_RATIO = (32.0 / 15.0) * (60.0 / 10.0);
     public static final double DRIVE_GEAR_RATIO = (50.0 / 14.0) * (19.0 / 25.0) * (45.0 / 15.0);
+    public static final double PEAK_OUTPUT = 1;
     public static final double MIN_DRIVE_SPEED = 0.1;
     public static final double MAX_DRIVE_SPEED = 1;
 
@@ -328,8 +329,8 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
     }
 
     private void configTalon(TalonFX talon) {
-        talon.configPeakOutputForward(0.3, 30);
-        talon.configPeakOutputReverse(-0.3, 30);
+        talon.configPeakOutputForward(PEAK_OUTPUT, 30);
+        talon.configPeakOutputReverse(-PEAK_OUTPUT, 30);
     }
 
     private void updateOdometry(double dt) {
