@@ -23,7 +23,7 @@ public class DriveCommand extends CommandBase {
 
     @Override
     public void execute() {
-        drivetrainSubsystem.drive(new Vector2(-forward.get(false), strafe.get(false)), -rotation.get(false));
+        drivetrainSubsystem.drive(new Vector2(-forward.get(false), strafe.get(false)), rotation.get(false));
 //        if(drivetrainSubsystem.isFieldOriented()) System.out.println(drivetrainSubsystem.getGyroAngle());
     }
 

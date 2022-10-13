@@ -4,6 +4,7 @@ import java.util.Map;
 
 import com.ctre.phoenix.motorcontrol.can.TalonFX;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
+import com.ctre.phoenix.sensors.CANCoder;
 import com.google.errorprone.annotations.concurrent.GuardedBy;
 import com.kauailabs.navx.frc.AHRS;
 
@@ -108,7 +109,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
                 DRIVE_GEAR_RATIO,
                 frontLeftSteeringMotor,
                 frontLeftDriveMotor,
-                null); //new CANCoder(Constants.DRIVETRAIN_FRONT_LEFT_ENCODER_PORT));
+                new CANCoder(Constants.DRIVETRAIN_FRONT_LEFT_ENCODER_PORT));
 
         Mk3SwerveModule frontRightModule = new Mk3SwerveModule(new Vector2(TRACKWIDTH / 2.0, -WHEELBASE / 2.0),
                 Constants.DRIVETRAIN_FRONT_RIGHT_ENCODER_OFFSET,
@@ -116,7 +117,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
                 DRIVE_GEAR_RATIO,
                 frontRightSteeringMotor,
                 frontRightDriveMotor,
-                null); //new CANCoder(Constants.DRIVETRAIN_FRONT_RIGHT_ENCODER_PORT));
+                new CANCoder(Constants.DRIVETRAIN_FRONT_RIGHT_ENCODER_PORT));
 
         Mk3SwerveModule backLeftModule = new Mk3SwerveModule(new Vector2(-TRACKWIDTH / 2.0, WHEELBASE / 2.0),
                 Constants.DRIVETRAIN_BACK_LEFT_ENCODER_OFFSET,
@@ -124,7 +125,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
                 DRIVE_GEAR_RATIO,
                 backLeftSteeringMotor,
                 backLeftDriveMotor,
-                null); //new CANCoder(Constants.DRIVETRAIN_BACK_LEFT_ENCODER_PORT));
+                new CANCoder(Constants.DRIVETRAIN_BACK_LEFT_ENCODER_PORT));
 
         Mk3SwerveModule backRightModule = new Mk3SwerveModule(new Vector2(-TRACKWIDTH / 2.0, -WHEELBASE / 2.0),
                 Constants.DRIVETRAIN_BACK_RIGHT_ENCODER_OFFSET,
@@ -132,7 +133,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
                 DRIVE_GEAR_RATIO,
                 backRightSteeringMotor,
                 backRightDriveMotor,
-                null); //new CANCoder(Constants.DRIVETRAIN_BACK_RIGHT_ENCODER_PORT));
+                new CANCoder(Constants.DRIVETRAIN_BACK_RIGHT_ENCODER_PORT));
 
         modules = new Mk3SwerveModule[] {frontLeftModule, frontRightModule, backLeftModule, backRightModule};
 
