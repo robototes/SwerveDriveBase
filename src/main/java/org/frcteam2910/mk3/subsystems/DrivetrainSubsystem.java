@@ -38,7 +38,6 @@ import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
-import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 
 
@@ -165,6 +164,10 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
                     .withSize(2, 4);
             moduleAngleEntries[i] = layout.add("Angle", 0.0).getEntry();
         }
+        tab.addNumber("Controller drive speed", this::getControllerDriveSpeed)
+                .withWidget(BuiltInWidgets.kTextView)
+                .withPosition(1, 0)
+                .withSize(1, 1);
         driveSpeedEntry = tab.add("Drive speed", driveSpeed)
                 .withWidget(BuiltInWidgets.kNumberSlider)
                 .withProperties(Map.ofEntries(Map.entry("min", MIN_DRIVE_SPEED), Map.entry("max", MAX_DRIVE_SPEED)))

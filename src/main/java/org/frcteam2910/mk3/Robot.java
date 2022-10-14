@@ -6,8 +6,6 @@ import org.frcteam2910.common.control.*;
 import org.frcteam2910.common.math.RigidTransform2;
 import org.frcteam2910.common.math.Rotation2;
 import org.frcteam2910.common.math.Vector2;
-import org.frcteam2910.common.math.spline.Spline;
-import org.frcteam2910.common.motion.MotionProfile;
 import org.frcteam2910.common.robot.UpdateManager;
 
 public class Robot extends TimedRobot {
@@ -56,6 +54,5 @@ public class Robot extends TimedRobot {
 
     @Override
     public void teleopPeriodic() {
-        System.out.println(robotContainer.drivetrainSubsystem.getControllerDriveSpeed());
     }
 }
