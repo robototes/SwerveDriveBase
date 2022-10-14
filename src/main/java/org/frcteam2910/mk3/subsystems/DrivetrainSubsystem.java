@@ -30,6 +30,7 @@ import org.frcteam2910.common.util.HolonomicFeedforward;
 import org.frcteam2910.mk3.Constants;
 
 import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.networktables.NetworkTableEntry;
 import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.SPI;
@@ -38,6 +39,8 @@ import edu.wpi.first.wpilibj.shuffleboard.BuiltInWidgets;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardLayout;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 
 
@@ -58,6 +61,8 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
             new Vector2(-TRACKWIDTH / 2.0, WHEELBASE / 2.0),        // Back left
             new Vector2(-TRACKWIDTH / 2.0, -WHEELBASE / 2.0)        // Back right
     );
+
+    private final Field2d field2d = new Field2d();
     private boolean fieldOriented;
     private double driveSpeed;
 
@@ -67,6 +72,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
         synchronized (sensorLock) {
             gyroscope.enableBoardlevelYawReset(true);
         }
+        SmartDashboard.putData("Field", field2d);
         enableFieldCentric();
         toddlerMode();
 
@@ -431,7 +437,15 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
         for (int i = 0; i < modules.length; i++) {
             moduleAngleEntries[i].setDouble(Math.toDegrees(modules[i].getCurrentAngle()));
         }
+        field2d.setRobotPose(pose.translation.x,
+                             pose.translation.y,
+                             new Rotation2d(pose.rotation.toRadians()));
     }
+
+    public HolonomicMotionProfiledTrajectoryFollower getFollower() {
+        return follower;
+    }
+
     public void follow(Path p){
         follower.follow(new Trajectory(p, CONSTRAINTS, 12.0));
     }
