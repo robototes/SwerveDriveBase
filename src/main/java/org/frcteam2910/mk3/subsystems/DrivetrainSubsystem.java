@@ -312,7 +312,7 @@ public class DrivetrainSubsystem implements Subsystem, UpdateManager.Updatable  
         }
     }
 
-    public void drive(Vector2 translationalVelocity, double rotationalVelocity) {
+    public void drive(Vector2 translationalVelocity, double rotationalVelocity, boolean fieldOriented) {
         if(Math.abs(rotationalVelocity) < 0.1) rotationalVelocity = 0;
         synchronized (stateLock) {
             driveSignal = new HolonomicDriveSignal(translationalVelocity.scale(getDriveSpeed()), Math.pow(rotationalVelocity*getDriveSpeed(), 3), fieldOriented);

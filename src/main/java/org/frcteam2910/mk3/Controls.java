@@ -10,7 +10,7 @@ public class Controls {
     private final XboxController primaryController = new XboxController(Constants.PRIMARY_CONTROLLER_PORT);
     public Controls(RobotContainer r){
 
-        CommandScheduler.getInstance().setDefaultCommand(r.drivetrainSubsystem, new DriveCommand(r.drivetrainSubsystem, getDriveForwardAxis(), getDriveStrafeAxis(), getDriveRotationAxis()));
+        CommandScheduler.getInstance().setDefaultCommand(r.drivetrainSubsystem, new DriveCommand(r.drivetrainSubsystem, getDriveForwardAxis(), getDriveStrafeAxis(), getDriveRotationAxis(), true));
 
         primaryController.getBackButton().whenPressed(r.drivetrainSubsystem::zeroGyroAngle);
 

@@ -19,6 +19,6 @@ public class TimedTaxiAutoCommand extends SequentialCommandGroup {
 
     public TimedTaxiAutoCommand(DrivetrainSubsystem drivebaseSubsystem) {
         addCommands(new WaitCommand(5)
-                    .deadlineWith(new DriveCommand(drivebaseSubsystem, constantAxis(0.6), constantAxis(0), constantAxis(0))));
+                    .deadlineWith(new DriveCommand(drivebaseSubsystem, constantAxis(0.6), constantAxis(0), constantAxis(0), false)));
     }
 }

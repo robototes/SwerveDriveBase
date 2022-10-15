@@ -10,11 +10,13 @@ public class DriveCommand extends CommandBase {
     private final Axis forward;
     private final Axis strafe;
     private final Axis rotation;
+    private final boolean fieldOriented;
 
-    public DriveCommand(DrivetrainSubsystem drivetrain, Axis forward, Axis strafe, Axis rotation) {
+    public DriveCommand(DrivetrainSubsystem drivetrain, Axis forward, Axis strafe, Axis rotation, boolean fieldOriented) {
         this.forward = forward;
         this.strafe = strafe;
         this.rotation = rotation;
+        this.fieldOriented = fieldOriented;
 
         drivetrainSubsystem = drivetrain;
 
@@ -23,12 +25,12 @@ public class DriveCommand extends CommandBase {
 
     @Override
     public void execute() {
-        drivetrainSubsystem.drive(new Vector2(-forward.get(false), strafe.get(false)), rotation.get(false));
+        drivetrainSubsystem.drive(new Vector2(-forward.get(false), strafe.get(false)), rotation.get(false), fieldOriented);
 //        if(drivetrainSubsystem.isFieldOriented()) System.out.println(drivetrainSubsystem.getGyroAngle());
     }
 
     @Override
     public void end(boolean interrupted) {
-        drivetrainSubsystem.drive(Vector2.ZERO, 0);
+        drivetrainSubsystem.drive(Vector2.ZERO, 0, true);
     }
 }
