@@ -24,4 +24,10 @@ public class Constants {
     public static final double DRIVETRAIN_BACK_RIGHT_ENCODER_OFFSET = Math.toRadians(132.71484375);
 
     public static final int PRIMARY_CONTROLLER_PORT = 0;
+
+    /**
+     * How many milliseconds it takes for a CAN command to time out.
+     */
+    public static final int CAN_TIMEOUT_MS = 20;
+
 }
