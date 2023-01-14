@@ -85,11 +85,11 @@ public class DrivetrainSubsystem extends SubsystemBase {
     SwerveDriveOdometry odometry;
 
     public DrivetrainSubsystem() {
-        gyroscope = new AHRS(SerialPort.Port.kMXP);
+        gyroscope = new AHRS(SerialPort.Port.kUSB1);
 
         odometry = new SwerveDriveOdometry(
         kinematics,
-        getGyroRotation2d(), 
+        gyroscope.getRotation2d(), 
         new SwerveModulePosition[] {
             new SwerveModulePosition(moduleDriveMotors[0].getSelectedSensorPosition(), 
                 new Rotation2d(moduleEncoders[0].getAbsolutePosition())),
@@ -154,8 +154,9 @@ public class DrivetrainSubsystem extends SubsystemBase {
         SwerveModuleState[] moduleStates = getModuleStates(new ChassisSpeeds(0,0,0));
         if (fieldOriented) {
             moduleStates = getModuleStates(
-                ChassisSpeeds.fromFieldRelativeSpeeds(forward, strafe, rotation.getRadians()*100, Rotation2d.fromDegrees(getGyroRotation2d().getDegrees()))
+                ChassisSpeeds.fromFieldRelativeSpeeds(forward, strafe, rotation.getRadians()*100, getGyroRotation2d())
             );
+            System.out.println(gyroscope.getAngle());
         } else {
             moduleStates = getModuleStates(new ChassisSpeeds(forward, strafe, rotation.getRadians()*100));
         }
@@ -200,7 +201,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
     }
 
     public Rotation2d getGyroRotation2d() {
-        return new Rotation2d(-gyroscope.getAngle());
+        return Rotation2d.fromDegrees(-gyroscope.getAngle());
     }
 
 }
