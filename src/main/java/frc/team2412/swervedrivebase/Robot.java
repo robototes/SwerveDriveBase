@@ -1,8 +1,12 @@
 package frc.team2412.swervedrivebase;
 
+import com.pathplanner.lib.server.PathPlannerServer;
+
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.TimedRobot;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.team2412.swervedrivebase.autonomous.PathPlannerAutoCommand;
 
 public class Robot extends TimedRobot {
     private RobotContainer robotContainer;
@@ -15,6 +19,8 @@ public class Robot extends TimedRobot {
         //         robotContainer.drivetrainSubsystem
         // );
         // updateManager.startLoop(5.0e-3);
+
+        PathPlannerServer.startServer(5811);
     }
 
     @Override
@@ -51,5 +57,11 @@ public class Robot extends TimedRobot {
 
     @Override
     public void teleopPeriodic() {
+    }
+
+    @Override
+    public void autonomousInit() {
+        Command autoCommand = new PathPlannerAutoCommand(robotContainer.drivetrainSubsystem, robotContainer);
+        autoCommand.schedule();
     }
 }

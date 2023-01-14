@@ -83,6 +83,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
     private AHRS gyroscope;
 
     SwerveDriveOdometry odometry;
+    Pose2d pose;
 
     public DrivetrainSubsystem() {
         gyroscope = new AHRS(SerialPort.Port.kUSB1);
@@ -92,15 +93,15 @@ public class DrivetrainSubsystem extends SubsystemBase {
         gyroscope.getRotation2d(), 
         new SwerveModulePosition[] {
             new SwerveModulePosition(moduleDriveMotors[0].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[0].getAbsolutePosition())),
+                new Rotation2d(moduleEncoders[0].getAbsolutePosition() - moduleOffsets[0].getDegrees())),
             new SwerveModulePosition(moduleDriveMotors[1].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[1].getAbsolutePosition())),
+                new Rotation2d(moduleEncoders[1].getAbsolutePosition() - moduleOffsets[1].getDegrees())),
             new SwerveModulePosition(moduleDriveMotors[2].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[2].getAbsolutePosition())),
+                new Rotation2d(moduleEncoders[2].getAbsolutePosition() - moduleOffsets[2].getDegrees())),
             new SwerveModulePosition(moduleDriveMotors[3].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[3].getAbsolutePosition())),
-        }
-    );
+                new Rotation2d(moduleEncoders[3].getAbsolutePosition() - moduleOffsets[3].getDegrees())),
+        });
+        pose = odometry.getPoseMeters();
 
         // configure encoders offsets
         for (int i = 0; i < moduleEncoders.length; i++) {
@@ -162,6 +163,11 @@ public class DrivetrainSubsystem extends SubsystemBase {
         drive(moduleStates);
     } 
 
+    public void drive(ChassisSpeeds chassisSpeeds) {
+        SwerveModuleState[] moduleStates = getModuleStates(chassisSpeeds);
+        drive(moduleStates);
+    }
+
     public void zeroGyroAngle() {
         gyroscope.setAngleAdjustment(gyroscope.getAngle());
     }
@@ -197,7 +203,22 @@ public class DrivetrainSubsystem extends SubsystemBase {
     }
 
     public Pose2d getPose() {
-        return odometry.getPoseMeters();
+        return pose;
+    }
+
+    public void resetPose(Pose2d pose) {
+        odometry.resetPosition(pose.getRotation(),
+        new SwerveModulePosition[] {
+            new SwerveModulePosition(moduleDriveMotors[0].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[0].getAbsolutePosition() - moduleOffsets[0].getDegrees())),
+            new SwerveModulePosition(moduleDriveMotors[1].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[1].getAbsolutePosition() - moduleOffsets[1].getDegrees())),
+            new SwerveModulePosition(moduleDriveMotors[2].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[2].getAbsolutePosition() - moduleOffsets[2].getDegrees())),
+            new SwerveModulePosition(moduleDriveMotors[3].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[3].getAbsolutePosition() - moduleOffsets[3].getDegrees())),
+        }, pose);
+        this.pose = pose;
     }
 
     public SwerveDriveKinematics getKinematics() {
@@ -206,6 +227,21 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
     public Rotation2d getGyroRotation2d() {
         return Rotation2d.fromDegrees(-gyroscope.getAngle());
+    }
+
+    @Override
+    public void periodic() {
+        pose = odometry.update(getGyroRotation2d(),
+        new SwerveModulePosition[] {
+            new SwerveModulePosition(moduleDriveMotors[0].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[0].getAbsolutePosition() - moduleOffsets[0].getDegrees())),
+            new SwerveModulePosition(moduleDriveMotors[1].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[1].getAbsolutePosition() - moduleOffsets[1].getDegrees())),
+            new SwerveModulePosition(moduleDriveMotors[2].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[2].getAbsolutePosition() - moduleOffsets[2].getDegrees())),
+            new SwerveModulePosition(moduleDriveMotors[3].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[3].getAbsolutePosition() - moduleOffsets[3].getDegrees())),
+        });
     }
 
 }
