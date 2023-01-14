@@ -1,5 +1,7 @@
 package frc.team2412.swervedrivebase;
 
+import edu.wpi.first.math.geometry.Rotation2d;
+
 public class Constants {
     public static final int DRIVETRAIN_FRONT_LEFT_DRIVE_MOTOR = 1;
     public static final int DRIVETRAIN_FRONT_RIGHT_DRIVE_MOTOR = 4;
@@ -18,10 +20,10 @@ public class Constants {
     public static final int PIGEON_PORT = 20;
 
     // In degrees
-    public static final double DRIVETRAIN_FRONT_LEFT_ENCODER_OFFSET = Math.toRadians(156.708984375);
-    public static final double DRIVETRAIN_FRONT_RIGHT_ENCODER_OFFSET = Math.toRadians(73.037109375);
-    public static final double DRIVETRAIN_BACK_LEFT_ENCODER_OFFSET = Math.toRadians(29.443359375);
-    public static final double DRIVETRAIN_BACK_RIGHT_ENCODER_OFFSET = Math.toRadians(132.71484375);
+    public static final Rotation2d DRIVETRAIN_FRONT_LEFT_ENCODER_OFFSET = Rotation2d.fromDegrees(0);
+    public static final Rotation2d DRIVETRAIN_FRONT_RIGHT_ENCODER_OFFSET = Rotation2d.fromDegrees(0);
+    public static final Rotation2d DRIVETRAIN_BACK_LEFT_ENCODER_OFFSET = Rotation2d.fromDegrees(0);
+    public static final Rotation2d DRIVETRAIN_BACK_RIGHT_ENCODER_OFFSET = Rotation2d.fromDegrees(0);
 
     public static final int PRIMARY_CONTROLLER_PORT = 0;
 
