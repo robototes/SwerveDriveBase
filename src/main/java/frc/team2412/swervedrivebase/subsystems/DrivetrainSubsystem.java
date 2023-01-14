@@ -8,6 +8,7 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.sensors.WPI_CANCoder;
 import com.kauailabs.navx.frc.AHRS;
 
+import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
@@ -170,8 +171,20 @@ public class DrivetrainSubsystem extends SubsystemBase {
      * @param speeds
      * @return Array with modules with front left at [0], front right at [1], back left at [2], back right at [3]
      */
-    private SwerveModuleState[] getModuleStates(ChassisSpeeds speeds) {
+    public SwerveModuleState[] getModuleStates(ChassisSpeeds speeds) {
         return kinematics.toSwerveModuleStates(speeds);
     }
+
+    public Pose2d getPose() {
+        return odometry.getPoseMeters();
+    }
+
+    public SwerveDriveKinematics getKinematics() {
+        return kinematics;
+    }
+
+    // public SwerveModuleState[] getModuleStates() {
+    //      return getModuleStates(speeds)
+    // }
 
 }
