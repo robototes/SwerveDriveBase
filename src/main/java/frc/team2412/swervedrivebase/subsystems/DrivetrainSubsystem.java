@@ -12,6 +12,8 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
+import edu.wpi.first.math.kinematics.SwerveDriveOdometry;
+import edu.wpi.first.math.kinematics.SwerveModulePosition;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.SerialPort;
@@ -77,8 +79,23 @@ public class DrivetrainSubsystem extends SubsystemBase {
         moduleLocations[0], moduleLocations[1], moduleLocations[2], moduleLocations[3]
     );
 
-    private AHRS gyroscope;
-    
+    private AHRS gyroscope = new AHRS(SerialPort.Port.kMXP);
+
+    SwerveDriveOdometry odometry = new SwerveDriveOdometry(
+        kinematics,
+        gyroscope.getRotation2d(), 
+        new SwerveModulePosition[] {
+            new SwerveModulePosition(moduleDriveMotors[0].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[0].getAbsolutePosition())),
+            new SwerveModulePosition(moduleDriveMotors[1].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[1].getAbsolutePosition())),
+            new SwerveModulePosition(moduleDriveMotors[2].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[2].getAbsolutePosition())),
+            new SwerveModulePosition(moduleDriveMotors[3].getSelectedSensorPosition(), 
+                new Rotation2d(moduleEncoders[3].getAbsolutePosition())),
+        }
+    );
+
     public DrivetrainSubsystem() {
         // configure encoders offsets
         for (int i = 0; i < moduleEncoders.length; i++) {
@@ -107,8 +124,6 @@ public class DrivetrainSubsystem extends SubsystemBase {
             // Limit steering module speed
             // steeringMotor.configPeakOutputForward(MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
             // steeringMotor.configPeakOutputReverse(-MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
-
-            gyroscope = new AHRS(SerialPort.Port.kMXP);
         }
     }
 
