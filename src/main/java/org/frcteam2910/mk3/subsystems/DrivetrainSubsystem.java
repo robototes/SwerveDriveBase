@@ -25,18 +25,20 @@ public class DrivetrainSubsystem extends SubsystemBase implements UpdateManager.
     private final double ticksPerRotation = 2048.0;
     private final double wheelDiameterMeters = 0.0762; // 3 inches
     private final double driveReductionL3 = (14.0 / 50.0) * (28.0 / 16.0) * (15.0 / 45.0); // verified
-    private final double steerReduction = (32.0 / 15.0) * (60.0 / 10.0); // verified
+    private final double steerReduction = (32.0 / 15.0) * (60.0 / 10.0); // verified, 12.8
 
     private static final int TALONFX_PID_LOOP_NUMBER = 0;
-    private static final double MAX_STEERING_SPEED = 0.5;
+    private static final double MAX_STEERING_SPEED = 1.0;
 
     // position units is one rotation / 2048
     // extrapolate this to meters using wheel perimeter (pi * wheel diameter)
     // raw sensor unit = perimeter / 2048
 
     // units: raw sensor units
-    private final double steerPositionCoefficient = (2.0 * Math.PI * steerReduction) / ticksPerRotation;
-    private final double driveVelocityCoefficient = (Math.PI * wheelDiameterMeters * driveReductionL3 / ticksPerRotation) * 10.0;
+    // 32000 ticks per rotation
+    // 16000 ticks per pi radians
+    private final double steerPositionCoefficient = (ticksPerRotation/(2*Math.PI)) * steerReduction;
+    private final double driveVelocityCoefficient = (Math.PI * wheelDiameterMeters * driveReductionL3 * ticksPerRotation);
 
     WPI_TalonFX[] moduleDriveMotors = {
         new WPI_TalonFX(Constants.DRIVETRAIN_FRONT_LEFT_DRIVE_MOTOR),
@@ -98,14 +100,14 @@ public class DrivetrainSubsystem extends SubsystemBase implements UpdateManager.
             steeringMotor.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, TALONFX_PID_LOOP_NUMBER, Constants.CAN_TIMEOUT_MS);
             // Make the integrated encoder count forever (don't wrap), since it doesn't work properly with continuous mode
             // We account for this manually (unfortunately)
-            steeringMotor.configFeedbackNotContinuous(true, Constants.CAN_TIMEOUT_MS);
+            // steeringMotor.configFeedbackNotContinuous(true, Constants.CAN_TIMEOUT_MS);
             // Configure PID values
-            steeringMotor.config_kP(TALONFX_PID_LOOP_NUMBER, 0.05, Constants.CAN_TIMEOUT_MS);
-            steeringMotor.config_kI(TALONFX_PID_LOOP_NUMBER, 0.01, Constants.CAN_TIMEOUT_MS);
-            steeringMotor.config_kD(TALONFX_PID_LOOP_NUMBER, 0.0, Constants.CAN_TIMEOUT_MS);
+            steeringMotor.config_kP(TALONFX_PID_LOOP_NUMBER, 0.15, Constants.CAN_TIMEOUT_MS);
+            steeringMotor.config_kI(TALONFX_PID_LOOP_NUMBER, 0.00, Constants.CAN_TIMEOUT_MS);
+            steeringMotor.config_kD(TALONFX_PID_LOOP_NUMBER, 1.0, Constants.CAN_TIMEOUT_MS);
             // Limit steering module speed
-            steeringMotor.configPeakOutputForward(MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
-            steeringMotor.configPeakOutputReverse(-MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
+            // steeringMotor.configPeakOutputForward(MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
+            // steeringMotor.configPeakOutputReverse(-MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
         }
     }
 
@@ -136,13 +138,13 @@ public class DrivetrainSubsystem extends SubsystemBase implements UpdateManager.
         // Set motor speeds and angles
         for (int i=0; i < moduleDriveMotors.length; i++) {
             // meters/100ms * raw sensor units conversion
-            // moduleDriveMotors[i].set(TalonFXControlMode.Velocity, (states[i].speedMetersPerSecond / 10) * driveVelocityCoefficient);
+            // moduleDriveMotors[i].set(TalonFXControlMode.Velocity, (states[i].speedMetersPerSecond) * driveVelocityCoefficient * 10);
             // System.out.println((states[i].speedMetersPerSecond / 10) * driveVelocityCoefficient);
         }
         for (int i=0; i < moduleAngleMotors.length; i++) {
-            // moduleAngleMotors[i].set(TalonFXControlMode.Position, states[i].angle.getRadians() / steerPositionCoefficient); // steerpositioncoefficient is maybe fixed
-            moduleAngleMotors[i].set(TalonFXControlMode.Position, 0);
-            System.out.println(states[i].angle.getRadians() / steerPositionCoefficient);
+            moduleAngleMotors[i].set(TalonFXControlMode.Position, states[i].angle.getRadians() * steerPositionCoefficient); // steerpositioncoefficient is maybe fixed
+            // moduleAngleMotors[i].set(TalonFXControlMode.Position, 1000);
+            System.out.println(states[i].angle.getRadians() * steerPositionCoefficient);
         }
 
     }
