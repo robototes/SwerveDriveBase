@@ -51,11 +51,14 @@ public class DriveCommand extends CommandBase {
     private final DoubleSupplier strafe;
     private final DoubleSupplier rotation;
 
+    private final AHRS gyro;
+
     public DriveCommand(DrivetrainSubsystem drivebaseSubsystem, DoubleSupplier forward, DoubleSupplier strafe, DoubleSupplier rotation) {
         this.drivebaseSubsystem = drivebaseSubsystem;
         this.forward = forward;
         this.strafe = strafe;
         this.rotation = rotation;
+        this.gyro = new AHRS(SerialPort.Port.kMXP);
 
         addRequirements(drivebaseSubsystem);
     }
@@ -66,8 +69,8 @@ public class DriveCommand extends CommandBase {
         double y = deadbandCorrection(-strafe.getAsDouble());
         double rot = deadbandCorrection(-rotation.getAsDouble()) / 2;
         drivebaseSubsystem.drive(x, y, Rotation2d.fromDegrees(rot), false);
-        AHRS gyro = new AHRS(SerialPort.Port.kMXP);
-        System.out.println("Angle: " + gyro.getAngle());
+
+        // System.out.println("Angle: " + gyro.getAngle());
     }
 
     public double deadbandCorrection(double input) {
