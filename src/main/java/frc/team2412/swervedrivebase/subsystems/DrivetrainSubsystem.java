@@ -138,7 +138,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
             // steeringMotor.configPeakOutputForward(MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
             // steeringMotor.configPeakOutputReverse(-MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
 
-            //steeringMotor.setSelectedSensorPosition((moduleEncoders[i].getAbsolutePosition() - moduleOffsets[i].getDegrees()) * ((ticksPerRotation/360) * steerReduction));
+            steeringMotor.setSelectedSensorPosition((moduleEncoders[i].getAbsolutePosition() - moduleOffsets[i].getDegrees()) * ((ticksPerRotation/360) * steerReduction));
         }
     }
 
@@ -154,14 +154,17 @@ public class DrivetrainSubsystem extends SubsystemBase {
         SwerveModuleState[] moduleStates = getModuleStates(new ChassisSpeeds(0,0,0));
         if (fieldOriented) {
             moduleStates = getModuleStates(
-                ChassisSpeeds.fromFieldRelativeSpeeds(forward, strafe, rotation.getRadians()*100, getGyroRotation2d())
+                ChassisSpeeds.fromFieldRelativeSpeeds(forward, -strafe, rotation.getRadians()*100, getGyroRotation2d())
             );
-            System.out.println(gyroscope.getAngle());
         } else {
-            moduleStates = getModuleStates(new ChassisSpeeds(forward, strafe, rotation.getRadians()*100));
+            moduleStates = getModuleStates(new ChassisSpeeds(forward, -strafe, rotation.getRadians()*100));
         }
         drive(moduleStates);
     } 
+
+    public void zeroGyroAngle() {
+        gyroscope.setAngleAdjustment(gyroscope.getAngle());
+    }
 
     /**
      * Drives the robot using states
@@ -181,6 +184,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
             // moduleAngleMotors[i].set(TalonFXControlMode.Position, 1000);
             // System.out.println(states[i].angle.getRadians() * steerPositionCoefficient);
             // System.out.println("Module number " + i + " has encoder position: " + moduleEncoders[i].getAbsolutePosition() + " and sensor position: " + moduleAngleMotors[i].getSelectedSensorPosition() * ((360/ticksPerRotation) * steerReduction));
+            // System.out.println("Module number" + i + " position: " + moduleEncoders[i].getAbsolutePosition());
         }
     }
 
