@@ -6,6 +6,7 @@ import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
 import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.sensors.WPI_CANCoder;
+import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -13,6 +14,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.SerialPort;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class DrivetrainSubsystem extends SubsystemBase {
@@ -75,6 +77,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
         moduleLocations[0], moduleLocations[1], moduleLocations[2], moduleLocations[3]
     );
 
+    private AHRS gyroscope;
+    
     public DrivetrainSubsystem() {
         // configure encoders offsets
         for (int i = 0; i < moduleEncoders.length; i++) {
@@ -103,6 +107,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
             // Limit steering module speed
             // steeringMotor.configPeakOutputForward(MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
             // steeringMotor.configPeakOutputReverse(-MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
+
+            gyroscope = new AHRS(SerialPort.Port.kMXP);
         }
     }
 
@@ -117,7 +123,9 @@ public class DrivetrainSubsystem extends SubsystemBase {
     public void drive(double forward, double strafe, Rotation2d rotation, boolean fieldOriented) {
         SwerveModuleState[] moduleStates = getModuleStates(new ChassisSpeeds(0,0,0));
         if (fieldOriented) {
-        
+            moduleStates = getModuleStates(
+                ChassisSpeeds.fromFieldRelativeSpeeds(forward, strafe, rotation.getRadians(), Rotation2d.fromDegrees(gyroscope.getAngle()))
+            );
         } else {
             moduleStates = getModuleStates(new ChassisSpeeds(forward, strafe, rotation.getRadians()));
         }
