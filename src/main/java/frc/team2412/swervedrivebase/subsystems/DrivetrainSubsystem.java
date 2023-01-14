@@ -80,11 +80,16 @@ public class DrivetrainSubsystem extends SubsystemBase {
         moduleLocations[0], moduleLocations[1], moduleLocations[2], moduleLocations[3]
     );
 
-    private AHRS gyroscope = new AHRS(SerialPort.Port.kMXP);
+    private AHRS gyroscope;
 
-    SwerveDriveOdometry odometry = new SwerveDriveOdometry(
+    SwerveDriveOdometry odometry;
+
+    public DrivetrainSubsystem() {
+        gyroscope = new AHRS(SerialPort.Port.kMXP);
+
+        odometry = new SwerveDriveOdometry(
         kinematics,
-        gyroscope.getRotation2d(), 
+        getGyroRotation2d(), 
         new SwerveModulePosition[] {
             new SwerveModulePosition(moduleDriveMotors[0].getSelectedSensorPosition(), 
                 new Rotation2d(moduleEncoders[0].getAbsolutePosition())),
@@ -97,7 +102,6 @@ public class DrivetrainSubsystem extends SubsystemBase {
         }
     );
 
-    public DrivetrainSubsystem() {
         // configure encoders offsets
         for (int i = 0; i < moduleEncoders.length; i++) {
             moduleEncoders[i].configFactoryDefault();
@@ -134,7 +138,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
             // steeringMotor.configPeakOutputForward(MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
             // steeringMotor.configPeakOutputReverse(-MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
 
-            steeringMotor.setSelectedSensorPosition((moduleEncoders[i].getAbsolutePosition() - moduleOffsets[i].getDegrees()) * ((ticksPerRotation/360) * steerReduction));
+            //steeringMotor.setSelectedSensorPosition((moduleEncoders[i].getAbsolutePosition() - moduleOffsets[i].getDegrees()) * ((ticksPerRotation/360) * steerReduction));
         }
     }
 
@@ -150,10 +154,10 @@ public class DrivetrainSubsystem extends SubsystemBase {
         SwerveModuleState[] moduleStates = getModuleStates(new ChassisSpeeds(0,0,0));
         if (fieldOriented) {
             moduleStates = getModuleStates(
-                ChassisSpeeds.fromFieldRelativeSpeeds(forward, strafe, rotation.getRadians(), Rotation2d.fromDegrees(gyroscope.getAngle()))
+                ChassisSpeeds.fromFieldRelativeSpeeds(forward, strafe, rotation.getRadians()*100, Rotation2d.fromDegrees(getGyroRotation2d().getDegrees()))
             );
         } else {
-            moduleStates = getModuleStates(new ChassisSpeeds(forward, strafe, rotation.getRadians()));
+            moduleStates = getModuleStates(new ChassisSpeeds(forward, strafe, rotation.getRadians()*100));
         }
         drive(moduleStates);
     } 
@@ -167,6 +171,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
         // Set motor speeds and angles
         for (int i=0; i < moduleDriveMotors.length; i++) {
             // meters/100ms * raw sensor units conversion
+            // System.out.println(states[i].speedMetersPerSecond);
             moduleDriveMotors[i].set(TalonFXControlMode.Velocity, ((states[i].speedMetersPerSecond)/10) * driveVelocityCoefficient);
             //System.out.println((states[i].speedMetersPerSecond/10) * driveVelocityCoefficient);
         }
@@ -174,7 +179,7 @@ public class DrivetrainSubsystem extends SubsystemBase {
             moduleAngleMotors[i].set(TalonFXControlMode.Position, states[i].angle.getRadians() * steerPositionCoefficient); // steerpositioncoefficient is maybe fixed
             // moduleAngleMotors[i].set(TalonFXControlMode.Position, 1000);
             // System.out.println(states[i].angle.getRadians() * steerPositionCoefficient);
-            System.out.println("Module number " + i + " has encoder position: " + moduleEncoders[i].getAbsolutePosition() + " and sensor position: " + moduleAngleMotors[i].getSelectedSensorPosition() * ((360/ticksPerRotation) * steerReduction));
+            // System.out.println("Module number " + i + " has encoder position: " + moduleEncoders[i].getAbsolutePosition() + " and sensor position: " + moduleAngleMotors[i].getSelectedSensorPosition() * ((360/ticksPerRotation) * steerReduction));
         }
     }
 
@@ -194,8 +199,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
         return kinematics;
     }
 
-    // public SwerveModuleState[] getModuleStates() {
-    //      return getModuleStates(speeds)
-    // }
+    public Rotation2d getGyroRotation2d() {
+        return new Rotation2d(-gyroscope.getAngle());
+    }
 
 }

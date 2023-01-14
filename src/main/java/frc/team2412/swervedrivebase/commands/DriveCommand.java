@@ -68,11 +68,11 @@ public class DriveCommand extends CommandBase {
         double x = deadbandCorrection(forward.getAsDouble());
         double y = deadbandCorrection(-strafe.getAsDouble());
         double rot = deadbandCorrection(-rotation.getAsDouble()) / 2;
-        drivebaseSubsystem.drive(x, y, Rotation2d.fromDegrees(rot), false);
+        drivebaseSubsystem.drive(x, y, Rotation2d.fromDegrees(rot), true);
 
         // System.out.println("Angle: " + gyro.getAngle());
     }
-
+ 
     public double deadbandCorrection(double input) {
         return Math.abs(input) < 0.05 ? 0 : (input - Math.signum(input) * 0.05) / 0.95;
     }
