@@ -1,26 +1,20 @@
-package org.frcteam2910.mk3;
+package frc.team2412.swervedrivebase;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
-import org.frcteam2910.common.control.*;
-import org.frcteam2910.common.math.RigidTransform2;
-import org.frcteam2910.common.math.Rotation2;
-import org.frcteam2910.common.math.Vector2;
-import org.frcteam2910.common.robot.UpdateManager;
 
 public class Robot extends TimedRobot {
     private RobotContainer robotContainer;
     private Controls controls;
-    private UpdateManager updateManager;
 
     @Override
     public void robotInit() {
         robotContainer = new RobotContainer();
-        updateManager = new UpdateManager(
-                robotContainer.drivetrainSubsystem
-        );
-        updateManager.startLoop(5.0e-3);
+        // updateManager = new UpdateManager(
+        //         robotContainer.drivetrainSubsystem
+        // );
+        // updateManager.startLoop(5.0e-3);
     }
 
     @Override
@@ -28,7 +22,7 @@ public class Robot extends TimedRobot {
         CommandScheduler.getInstance().run();
     }
 
-    public SimplePathBuilder builder;
+    // public SimplePathBuilder builder;
     // @Override
     // public void autonomousInit() {
     //     robotContainer.drivetrainSubsystem.resetPose(RigidTransform2.ZERO);
@@ -47,7 +41,7 @@ public class Robot extends TimedRobot {
 
     @Override
     public void disabledPeriodic() {
-        //robotContainer.drivetrainSubsystem.drive(0.0, 0.0, Rotation2d.fromDegrees(0), false);
+        robotContainer.drivetrainSubsystem.drive(0.0, 0.0, Rotation2d.fromDegrees(0), false);
     }
 
     @Override

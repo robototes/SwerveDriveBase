@@ -1,15 +1,11 @@
-package org.frcteam2910.mk3.subsystems;
+package frc.team2412.swervedrivebase.subsystems;
 
-import org.frcteam2910.mk3.Constants;
-import org.opencv.calib3d.StereoBM;
-
+import frc.team2412.swervedrivebase.Constants;
 import com.ctre.phoenix.motorcontrol.NeutralMode;
 import com.ctre.phoenix.motorcontrol.TalonFXControlMode;
 import com.ctre.phoenix.motorcontrol.TalonFXFeedbackDevice;
-import com.ctre.phoenix.motorcontrol.TalonFXInvertType;
 import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.sensors.WPI_CANCoder;
-import com.revrobotics.AbsoluteEncoder;
 
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -18,9 +14,8 @@ import edu.wpi.first.math.kinematics.SwerveDriveKinematics;
 import edu.wpi.first.math.kinematics.SwerveModuleState;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-import org.frcteam2910.common.robot.UpdateManager;
 
-public class DrivetrainSubsystem extends SubsystemBase implements UpdateManager.Updatable {
+public class DrivetrainSubsystem extends SubsystemBase {
 
     private final double ticksPerRotation = 2048.0;
     private final double wheelDiameterMeters = 0.0762; // 3 inches
@@ -35,7 +30,7 @@ public class DrivetrainSubsystem extends SubsystemBase implements UpdateManager.
     // raw sensor unit = perimeter / 2048
 
     // units: raw sensor units
-    private final double steerPositionCoefficient = (2.0 * Math.PI * steerReduction) / ticksPerRotation;
+    private final double steerPositionCoefficient = 2.0 * Math.PI * steerReduction / ticksPerRotation;
     private final double driveVelocityCoefficient = (Math.PI * wheelDiameterMeters * driveReductionL3 / ticksPerRotation) * 10.0;
 
     WPI_TalonFX[] moduleDriveMotors = {
@@ -136,15 +131,14 @@ public class DrivetrainSubsystem extends SubsystemBase implements UpdateManager.
         // Set motor speeds and angles
         for (int i=0; i < moduleDriveMotors.length; i++) {
             // meters/100ms * raw sensor units conversion
-            // moduleDriveMotors[i].set(TalonFXControlMode.Velocity, (states[i].speedMetersPerSecond / 10) * driveVelocityCoefficient);
+            moduleDriveMotors[i].set(TalonFXControlMode.Velocity, (states[i].speedMetersPerSecond / 10) * driveVelocityCoefficient);
             // System.out.println((states[i].speedMetersPerSecond / 10) * driveVelocityCoefficient);
         }
         for (int i=0; i < moduleAngleMotors.length; i++) {
-            // moduleAngleMotors[i].set(TalonFXControlMode.Position, states[i].angle.getRadians() / steerPositionCoefficient); // steerpositioncoefficient is maybe fixed
-            moduleAngleMotors[i].set(TalonFXControlMode.Position, 0);
-            System.out.println(states[i].angle.getRadians() / steerPositionCoefficient);
+            moduleAngleMotors[i].set(TalonFXControlMode.Position, states[i].angle.getRadians() * steerPositionCoefficient * 40000); // steerpositioncoefficient is maybe fixed
+            // moduleAngleMotors[i].set(TalonFXControlMode.Position, 1000);
+            // System.out.println(states[i].angle.getRadians() * steerPositionCoefficient);
         }
-
     }
 
     /**
@@ -155,8 +149,4 @@ public class DrivetrainSubsystem extends SubsystemBase implements UpdateManager.
         return kinematics.toSwerveModuleStates(speeds);
     }
 
-    @Override
-    public void update(double time, double dt) {
-        // not sure team         
-    }
 }

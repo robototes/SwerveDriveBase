@@ -1,117 +1,18 @@
 {
-  "HALProvider": {
-    "Other Devices": {
-      "CANCoder[12]": {
-        "header": {
-          "open": true
-        }
-      },
-      "CANCoder[3]": {
-        "header": {
-          "open": true
-        }
-      },
-      "CANCoder[6]": {
-        "header": {
-          "open": true
-        }
-      },
-      "CANCoder[9]": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[10]": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[10]/Integrated Sensor": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[11]": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[11]/Fwd Limit": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[11]/Integrated Sensor": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[1]": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[1]/Integrated Sensor": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[2]": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[2]/Integrated Sensor": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[4]": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[4]/Integrated Sensor": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[5]": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[7]": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[7]/Integrated Sensor": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[8]": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[8]/Fwd Limit": {
-        "header": {
-          "open": true
-        }
-      },
-      "Talon FX[8]/Integrated Sensor": {
-        "header": {
-          "open": true
-        }
-      }
-    }
-  },
   "NTProvider": {
     "types": {
       "/FMSInfo": "FMSInfo",
-      "/SmartDashboard/Field": "Field2d"
+      "/LiveWindow/DrivetrainSubsystem": "Subsystem",
+      "/LiveWindow/Ungrouped/Scheduler": "Scheduler",
+      "/LiveWindow/Ungrouped/Talon FX [10]": "Motor Controller",
+      "/LiveWindow/Ungrouped/Talon FX [11]": "Motor Controller",
+      "/LiveWindow/Ungrouped/Talon FX [1]": "Motor Controller",
+      "/LiveWindow/Ungrouped/Talon FX [2]": "Motor Controller",
+      "/LiveWindow/Ungrouped/Talon FX [4]": "Motor Controller",
+      "/LiveWindow/Ungrouped/Talon FX [5]": "Motor Controller",
+      "/LiveWindow/Ungrouped/Talon FX [7]": "Motor Controller",
+      "/LiveWindow/Ungrouped/Talon FX [8]": "Motor Controller",
+      "/LiveWindow/Ungrouped/navX-Sensor[1]": "Gyro"
     }
   }
 }

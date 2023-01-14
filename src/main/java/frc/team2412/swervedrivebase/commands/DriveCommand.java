@@ -1,14 +1,13 @@
-package org.frcteam2910.mk3.commands;
+package frc.team2412.swervedrivebase.commands;
+
+import java.util.function.DoubleSupplier;
+
+import com.kauailabs.navx.frc.AHRS;
 
 import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.wpilibj.Joystick;
+import edu.wpi.first.wpilibj.SerialPort;
 import edu.wpi.first.wpilibj2.command.CommandBase;
-
-import org.frcteam2910.mk3.Controls;
-import org.frcteam2910.mk3.subsystems.DrivetrainSubsystem;
-import org.frcteam2910.mk3.subsystems.DrivetrainSubsystemOLD;
-import org.frcteam2910.common.math.Vector2;
-import org.frcteam2910.common.robot.input.Axis;
+import frc.team2412.swervedrivebase.subsystems.DrivetrainSubsystem;
 
 public class DriveCommand extends CommandBase {
 //     private final DrivetrainSubsystem drivetrainSubsystem;
@@ -47,30 +46,32 @@ public class DriveCommand extends CommandBase {
 //     }
 
 
-private final DrivetrainSubsystem drivebaseSubsystem;
-private final Axis forward;
-private final Axis strafe;
-private final Axis rotation;
+    private final DrivetrainSubsystem drivebaseSubsystem;
+    private final DoubleSupplier forward;
+    private final DoubleSupplier strafe;
+    private final DoubleSupplier rotation;
 
-public DriveCommand(DrivetrainSubsystem drivebaseSubsystem, Axis forward, Axis strafe, Axis rotation) {
-    this.drivebaseSubsystem = drivebaseSubsystem;
-    this.forward = forward;
-    this.strafe = strafe;
-    this.rotation = rotation;
+    public DriveCommand(DrivetrainSubsystem drivebaseSubsystem, DoubleSupplier forward, DoubleSupplier strafe, DoubleSupplier rotation) {
+        this.drivebaseSubsystem = drivebaseSubsystem;
+        this.forward = forward;
+        this.strafe = strafe;
+        this.rotation = rotation;
 
-    addRequirements(drivebaseSubsystem);
-}
+        addRequirements(drivebaseSubsystem);
+    }
 
-@Override
-public void execute() {
-    double x = deadbandCorrection(forward.get(false));
-    double y = deadbandCorrection(-strafe.get(false));
-    double rot = deadbandCorrection(-rotation.get(false)) / 2;
-    drivebaseSubsystem.drive(x, y, Rotation2d.fromRadians(rot), false);
-}
+    @Override
+    public void execute() {
+        double x = deadbandCorrection(forward.getAsDouble());
+        double y = deadbandCorrection(-strafe.getAsDouble());
+        double rot = deadbandCorrection(-rotation.getAsDouble()) / 2;
+        drivebaseSubsystem.drive(x, y, Rotation2d.fromDegrees(rot), false);
+        AHRS gyro = new AHRS(SerialPort.Port.kMXP);
+        System.out.println("Angle: " + gyro.getAngle());
+    }
 
-public double deadbandCorrection(double input) {
-    return Math.abs(input) < 0.05 ? 0 : (input - Math.signum(input) * 0.05) / 0.95;
-}
+    public double deadbandCorrection(double input) {
+        return Math.abs(input) < 0.05 ? 0 : (input - Math.signum(input) * 0.05) / 0.95;
+    }
 
 }
