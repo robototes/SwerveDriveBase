@@ -8,6 +8,8 @@ import com.ctre.phoenix.motorcontrol.can.WPI_TalonFX;
 import com.ctre.phoenix.sensors.WPI_CANCoder;
 import com.kauailabs.navx.frc.AHRS;
 
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
@@ -22,46 +24,46 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class DrivetrainSubsystem extends SubsystemBase {
 
-    private final double ticksPerRotation = 2048.0;
-    private final double wheelDiameterMeters = 0.0762; // 3 inches
-    private final double driveReductionL1 = 8.14; // verified
-    private final double steerReduction = (32.0 / 15.0) * (60.0 / 10.0); // verified, 12.8
+    private static final double ticksPerRotation = 2048.0;
+    private static final double wheelDiameterMeters = 0.0762; // 3 inches
+    private static final double driveReductionL1 = 8.14; // verified
+    private static final double steerReduction = (32.0 / 15.0) * (60.0 / 10.0); // verified, 12.8
 
-    private static final int TALONFX_PID_LOOP_NUMBER = 0;
-    private static final double MAX_STEERING_SPEED = 1.0;
+    private static final int talonFXLoopNumber = 0;
+    private static final double maxSteeringSpeed = 1.0;
+
+    private Field2d field = new Field2d();
 
     // position units is one rotation / 2048
     // extrapolate this to meters using wheel perimeter (pi * wheel diameter)
-    // raw sensor unit = perimeter / 2048
+    // raw sensor unit per meter driven = ticks/ perimeter
 
     // units: raw sensor units
-    // 32000 ticks per rotation
-    // 16000 ticks per pi radians
-    private final double steerPositionCoefficient = (ticksPerRotation/(2*Math.PI)) * steerReduction; // radians per tick
-    private final double driveVelocityCoefficient = (ticksPerRotation / (Math.PI * wheelDiameterMeters)) * driveReductionL1; // ticks per meter per 100 ms
+    private static final double steerPositionCoefficient = (ticksPerRotation/(2*Math.PI)) * steerReduction; // radians per tick
+    private static final double driveVelocityCoefficient = (ticksPerRotation / (Math.PI * wheelDiameterMeters)) * driveReductionL1; // ticks per meter per 100 ms
 
-    WPI_TalonFX[] moduleDriveMotors = {
+    private WPI_TalonFX[] moduleDriveMotors = {
         new WPI_TalonFX(Constants.DRIVETRAIN_FRONT_LEFT_DRIVE_MOTOR),
         new WPI_TalonFX(Constants.DRIVETRAIN_FRONT_RIGHT_DRIVE_MOTOR),
         new WPI_TalonFX(Constants.DRIVETRAIN_BACK_LEFT_DRIVE_MOTOR),
         new WPI_TalonFX(Constants.DRIVETRAIN_BACK_RIGHT_DRIVE_MOTOR)
     };
 
-    WPI_TalonFX[] moduleAngleMotors = {
+    private WPI_TalonFX[] moduleAngleMotors = {
         new WPI_TalonFX(Constants.DRIVETRAIN_FRONT_LEFT_ANGLE_MOTOR),
         new WPI_TalonFX(Constants.DRIVETRAIN_FRONT_RIGHT_ANGLE_MOTOR),
         new WPI_TalonFX(Constants.DRIVETRAIN_BACK_LEFT_ANGLE_MOTOR),
         new WPI_TalonFX(Constants.DRIVETRAIN_BACK_RIGHT_ANGLE_MOTOR)
     };
 
-    WPI_CANCoder[] moduleEncoders = {
+    private WPI_CANCoder[] moduleEncoders = {
         new WPI_CANCoder(Constants.DRIVETRAIN_FRONT_LEFT_ENCODER_PORT),
         new WPI_CANCoder(Constants.DRIVETRAIN_FRONT_RIGHT_ENCODER_PORT),
         new WPI_CANCoder(Constants.DRIVETRAIN_BACK_LEFT_ENCODER_PORT),
         new WPI_CANCoder(Constants.DRIVETRAIN_BACK_RIGHT_ENCODER_PORT)
     };
 
-    Rotation2d[] moduleOffsets = {
+    private Rotation2d[] moduleOffsets = {
         Constants.DRIVETRAIN_FRONT_LEFT_ENCODER_OFFSET,
         Constants.DRIVETRAIN_FRONT_RIGHT_ENCODER_OFFSET,
         Constants.DRIVETRAIN_BACK_LEFT_ENCODER_OFFSET,
@@ -82,31 +84,18 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
     private AHRS gyroscope;
 
-    SwerveDriveOdometry odometry;
-    Pose2d pose;
+    private SwerveDriveOdometry odometry;
+    private Pose2d pose;
 
     public DrivetrainSubsystem() {
         gyroscope = new AHRS(SerialPort.Port.kUSB1);
 
-        odometry = new SwerveDriveOdometry(
-        kinematics,
-        gyroscope.getRotation2d(), 
-        new SwerveModulePosition[] {
-            new SwerveModulePosition(moduleDriveMotors[0].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[0].getAbsolutePosition() - moduleOffsets[0].getDegrees())),
-            new SwerveModulePosition(moduleDriveMotors[1].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[1].getAbsolutePosition() - moduleOffsets[1].getDegrees())),
-            new SwerveModulePosition(moduleDriveMotors[2].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[2].getAbsolutePosition() - moduleOffsets[2].getDegrees())),
-            new SwerveModulePosition(moduleDriveMotors[3].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[3].getAbsolutePosition() - moduleOffsets[3].getDegrees())),
-        });
+        odometry = new SwerveDriveOdometry(kinematics, gyroscope.getRotation2d(), getModulePositions());
         pose = odometry.getPoseMeters();
 
         // configure encoders offsets
         for (int i = 0; i < moduleEncoders.length; i++) {
             moduleEncoders[i].configFactoryDefault();
-            // moduleEncoders[i].configMagnetOffset(moduleOffsets[i].getDegrees());
         }
 
         // configure drive motors
@@ -116,31 +105,35 @@ public class DrivetrainSubsystem extends SubsystemBase {
             driveMotor.setSensorPhase(true);
             
             driveMotor.configNeutralDeadband(0.01);
-            driveMotor.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, TALONFX_PID_LOOP_NUMBER, Constants.CAN_TIMEOUT_MS);
+            driveMotor.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, talonFXLoopNumber, Constants.CAN_TIMEOUT_MS);
 
-            driveMotor.config_kP(TALONFX_PID_LOOP_NUMBER, 0.1);
-            driveMotor.config_kI(TALONFX_PID_LOOP_NUMBER, 0.001);
-            driveMotor.config_kD(TALONFX_PID_LOOP_NUMBER, 1023.0/20660.0);
+            driveMotor.config_kP(talonFXLoopNumber, 0.1);
+            driveMotor.config_kI(talonFXLoopNumber, 0.001);
+            driveMotor.config_kD(talonFXLoopNumber, 1023.0/20660.0);
         }
 
         // configure angle motors
         for (int i = 0; i < moduleAngleMotors.length; i++) {
             WPI_TalonFX steeringMotor = moduleAngleMotors[i];
             steeringMotor.configFactoryDefault();
-            steeringMotor.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, TALONFX_PID_LOOP_NUMBER, Constants.CAN_TIMEOUT_MS);
+            steeringMotor.configSelectedFeedbackSensor(TalonFXFeedbackDevice.IntegratedSensor, talonFXLoopNumber, Constants.CAN_TIMEOUT_MS);
             // Make the integrated encoder count forever (don't wrap), since it doesn't work properly with continuous mode
             // We account for this manually (unfortunately)
             // steeringMotor.configFeedbackNotContinuous(true, Constants.CAN_TIMEOUT_MS);
             // Configure PID values
-            steeringMotor.config_kP(TALONFX_PID_LOOP_NUMBER, 0.15, Constants.CAN_TIMEOUT_MS);
-            steeringMotor.config_kI(TALONFX_PID_LOOP_NUMBER, 0.00, Constants.CAN_TIMEOUT_MS);
-            steeringMotor.config_kD(TALONFX_PID_LOOP_NUMBER, 1.0, Constants.CAN_TIMEOUT_MS);
+            steeringMotor.config_kP(talonFXLoopNumber, 0.15, Constants.CAN_TIMEOUT_MS);
+            steeringMotor.config_kI(talonFXLoopNumber, 0.00, Constants.CAN_TIMEOUT_MS);
+            steeringMotor.config_kD(talonFXLoopNumber, 1.0, Constants.CAN_TIMEOUT_MS);
             // Limit steering module speed
-            // steeringMotor.configPeakOutputForward(MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
-            // steeringMotor.configPeakOutputReverse(-MAX_STEERING_SPEED, Constants.CAN_TIMEOUT_MS);
+            // steeringMotor.configPeakOutputForward(maxSteeringSpeed, Constants.CAN_TIMEOUT_MS);
+            // steeringMotor.configPeakOutputReverse(-maxSteeringSpeed, Constants.CAN_TIMEOUT_MS);
 
             steeringMotor.setSelectedSensorPosition((moduleEncoders[i].getAbsolutePosition() - moduleOffsets[i].getDegrees()) * ((ticksPerRotation/360) * steerReduction));
         }
+
+        // configure shuffleboard
+
+        SmartDashboard.putData("Field", field);
     }
 
     /**
@@ -202,13 +195,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
         return kinematics.toSwerveModuleStates(speeds);
     }
 
-    public Pose2d getPose() {
-        return pose;
-    }
-
-    public void resetPose(Pose2d pose) {
-        odometry.resetPosition(pose.getRotation(),
-        new SwerveModulePosition[] {
+    public SwerveModulePosition[] getModulePositions() {
+        return new SwerveModulePosition[] {
             new SwerveModulePosition(moduleDriveMotors[0].getSelectedSensorPosition(), 
                 new Rotation2d(moduleEncoders[0].getAbsolutePosition() - moduleOffsets[0].getDegrees())),
             new SwerveModulePosition(moduleDriveMotors[1].getSelectedSensorPosition(), 
@@ -217,7 +205,15 @@ public class DrivetrainSubsystem extends SubsystemBase {
                 new Rotation2d(moduleEncoders[2].getAbsolutePosition() - moduleOffsets[2].getDegrees())),
             new SwerveModulePosition(moduleDriveMotors[3].getSelectedSensorPosition(), 
                 new Rotation2d(moduleEncoders[3].getAbsolutePosition() - moduleOffsets[3].getDegrees())),
-        }, pose);
+        };
+    }
+
+    public Pose2d getPose() {
+        return pose;
+    }
+
+    public void resetPose(Pose2d pose) {
+        odometry.resetPosition(pose.getRotation(), getModulePositions(), pose);
         this.pose = pose;
     }
 
@@ -231,17 +227,8 @@ public class DrivetrainSubsystem extends SubsystemBase {
 
     @Override
     public void periodic() {
-        pose = odometry.update(getGyroRotation2d(),
-        new SwerveModulePosition[] {
-            new SwerveModulePosition(moduleDriveMotors[0].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[0].getAbsolutePosition() - moduleOffsets[0].getDegrees())),
-            new SwerveModulePosition(moduleDriveMotors[1].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[1].getAbsolutePosition() - moduleOffsets[1].getDegrees())),
-            new SwerveModulePosition(moduleDriveMotors[2].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[2].getAbsolutePosition() - moduleOffsets[2].getDegrees())),
-            new SwerveModulePosition(moduleDriveMotors[3].getSelectedSensorPosition(), 
-                new Rotation2d(moduleEncoders[3].getAbsolutePosition() - moduleOffsets[3].getDegrees())),
-        });
+        pose = odometry.update(getGyroRotation2d(), getModulePositions());
+        field.setRobotPose(pose);
     }
 
 }
